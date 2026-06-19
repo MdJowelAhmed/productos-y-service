@@ -35,6 +35,8 @@ export const api = createApi({
     'Transaction',
     'Announcement',
     'AuditLog',
+    'SupportTicket',
+    'SupportThread',
   ],
   endpoints: () => ({}),
 })

@@ -245,6 +245,34 @@ export interface Announcement {
   createdAt: ISODate
 }
 
+/* -------------------------- Support ------------------------------- */
+
+export type SupportStatus = 'open' | 'pending' | 'resolved'
+export type SupportSender = 'customer' | 'agent'
+
+export interface SupportMessage {
+  id: ID
+  ticketId: ID
+  sender: SupportSender
+  body: string
+  sentAt: ISODate
+}
+
+/** A customer support conversation shown in the admin inbox. */
+export interface SupportTicket {
+  id: ID
+  customerName: string
+  customerEmail: string
+  subject: string
+  status: SupportStatus
+  lastMessage: string
+  lastMessageAt: ISODate
+  /** Unread inbound (customer) messages awaiting an agent reply. */
+  unread: number
+  messageCount: number
+  createdAt: ISODate
+}
+
 /* ----------------------------- Audit ------------------------------ */
 
 export interface AuditLog {

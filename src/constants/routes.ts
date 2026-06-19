@@ -26,6 +26,7 @@ export const ROUTES = {
   faqs: '/cms/faqs',
 
   // Engagement
+  support: '/support',
   announcements: '/announcements',
 
   // Administration

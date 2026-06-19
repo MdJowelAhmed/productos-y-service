@@ -7,6 +7,7 @@ import {
   Receipt,
   Tags,
   Megaphone,
+  LifeBuoy,
   Settings,
   ShieldAlert,
   Image,
@@ -25,7 +26,7 @@ export interface NavItem {
   /** Exact match only (used for the dashboard index route). */
   end?: boolean
   /** Optional badge key resolved at render time (e.g. open reports count). */
-  badgeKey?: 'reports'
+  badgeKey?: 'reports' | 'support'
 }
 
 export interface NavSection {
@@ -69,7 +70,10 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: 'Engagement',
-    items: [{ label: 'Announcements', to: ROUTES.announcements, icon: Megaphone }],
+    items: [
+      { label: 'Support', to: ROUTES.support, icon: LifeBuoy, badgeKey: 'support' },
+      { label: 'Announcements', to: ROUTES.announcements, icon: Megaphone },
+    ],
   },
   {
     title: 'Administration',

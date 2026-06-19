@@ -6,6 +6,7 @@ import type {
   ReportStatus,
   StoreType,
   SubscriptionStatus,
+  SupportStatus,
   TransactionStatus,
 } from '@/types/models'
 
@@ -77,4 +78,13 @@ export function TransactionStatusBadge({ status }: { status: TransactionStatus }
 
 export function ContentStatusBadge({ status }: { status: ContentStatus }) {
   return <Badge tone={status === 'published' ? 'green' : 'gray'}>{status}</Badge>
+}
+
+const supportTone: Record<SupportStatus, BadgeTone> = {
+  open: 'amber',
+  pending: 'blue',
+  resolved: 'green',
+}
+export function SupportStatusBadge({ status }: { status: SupportStatus }) {
+  return <Badge tone={supportTone[status]}>{status}</Badge>
 }

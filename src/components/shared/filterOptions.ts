@@ -46,3 +46,10 @@ export const TRANSACTION_STATUS_OPTIONS: Option[] = [
   { label: 'Failed', value: 'failed' },
   { label: 'Refunded', value: 'refunded' },
 ]
+
+export const SUPPORT_STATUS_OPTIONS: Option[] = [
+  { label: 'All tickets', value: 'all' },
+  { label: 'Open', value: 'open' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Resolved', value: 'resolved' },
+]

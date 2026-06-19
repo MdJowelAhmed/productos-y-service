@@ -13,6 +13,10 @@ import type {
   Store,
   Subscription,
   SubscriptionStatus,
+  SupportMessage,
+  SupportSender,
+  SupportStatus,
+  SupportTicket,
   Transaction,
   TransactionStatus,
   User,
@@ -371,6 +375,92 @@ export const announcements: Announcement[] = Array.from({ length: 8 }, (_, i) =>
     sentAt: status === 'sent' ? daysAgo(i + 1) : undefined,
     createdAt: daysAgo(i + 1),
   }
+})
+
+/* ---------------------------- Support ----------------------------- */
+
+const supportSubjects = [
+  'Trouble opening my store',
+  'Payment charged twice',
+  'How do I upgrade my plan?',
+  'Seller not responding',
+  'Cannot change my store category',
+  'App keeps logging me out',
+  'Listing not showing in search',
+  'Request a refund',
+  'How do I become a seller?',
+  'Update my phone number',
+]
+const customerOpeners = [
+  'Hi, I need some help please.',
+  'I was charged twice this month — can you check?',
+  'How can I upgrade to the Growth plan?',
+  'A seller hasn’t replied to me in days.',
+  'I can’t change my store category, it’s greyed out.',
+  'The app logs me out every few minutes.',
+  'My new listing isn’t appearing in search.',
+  'I’d like to request a refund for my subscription.',
+]
+const agentReplies = [
+  'Hi! Thanks for reaching out — happy to help. Could you share a bit more detail?',
+  'Thanks for flagging this. Let me look into it for you right away.',
+  'I’ve checked your account and escalated this to the team.',
+  'That should be sorted now. Is there anything else I can help with?',
+]
+const customerFollowUps = [
+  'Sure — it started happening yesterday.',
+  'Thank you! Any update on this?',
+  'Okay, I’ll wait to hear back.',
+]
+
+export const supportTickets: SupportTicket[] = Array.from({ length: 12 }, (_, i) => {
+  const customer = users[(i * 3) % users.length]
+  const status: SupportStatus = (['open', 'open', 'pending', 'resolved'] as const)[i % 4]
+  return {
+    id: `tkt_${12000 + i}`,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    subject: supportSubjects[i % supportSubjects.length],
+    status,
+    lastMessage: '',
+    lastMessageAt: daysAgo(i % 7),
+    unread: status === 'open' ? 1 : 0,
+    messageCount: 0,
+    createdAt: daysAgo((i % 7) + 1),
+  }
+})
+
+// Build each ticket's thread. Open tickets end on a customer message (awaiting a
+// reply); resolved tickets end on an agent message.
+export const supportMessages: SupportMessage[] = supportTickets.flatMap((ticket, i) => {
+  const senders: SupportSender[] =
+    ticket.status === 'resolved'
+      ? ['customer', 'agent', 'customer', 'agent']
+      : ticket.status === 'pending'
+        ? ['customer', 'agent']
+        : ['customer', 'agent', 'customer']
+
+  const thread = senders.map((sender, k) => {
+    const body =
+      sender === 'agent'
+        ? agentReplies[(i + k) % agentReplies.length]
+        : k === 0
+          ? customerOpeners[i % customerOpeners.length]
+          : customerFollowUps[(i + k) % customerFollowUps.length]
+    return {
+      id: `${ticket.id}_m${k}`,
+      ticketId: ticket.id,
+      sender,
+      body,
+      sentAt: daysAgo((i % 7) + (senders.length - k) * 0.04),
+    }
+  })
+
+  const last = thread[thread.length - 1]
+  ticket.lastMessage = last.body
+  ticket.lastMessageAt = last.sentAt
+  ticket.messageCount = thread.length
+  return thread
 })
 
 /* ----------------------------- Audit ------------------------------ */

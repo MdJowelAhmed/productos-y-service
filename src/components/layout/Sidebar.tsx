@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { Logo } from '@/components/shared/Logo'
 import { useGetReportsQuery } from '@/services/endpoints/moderationApi'
+import { useGetSupportTicketsQuery } from '@/services/endpoints/supportApi'
 import { NAV_SECTIONS, type NavItem } from './navigation'
 
 interface SidebarProps {
@@ -13,12 +14,18 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
-  // Live count of open reports for the sidebar badge.
+  // Live counts for the sidebar badges.
   const { data: reports } = useGetReportsQuery({ status: 'open', pageSize: 100 })
   const openReports = reports?.total ?? 0
 
-  const badgeFor = (item: NavItem) =>
-    item.badgeKey === 'reports' && openReports > 0 ? openReports : null
+  const { data: tickets } = useGetSupportTicketsQuery({ pageSize: 100 })
+  const unreadTickets = (tickets?.items ?? []).filter((t) => t.unread > 0).length
+
+  const badgeFor = (item: NavItem) => {
+    if (item.badgeKey === 'reports') return openReports > 0 ? openReports : null
+    if (item.badgeKey === 'support') return unreadTickets > 0 ? unreadTickets : null
+    return null
+  }
 
   return (
     <>

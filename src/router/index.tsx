@@ -17,6 +17,7 @@ import ReportsPage from '@/pages/moderation/ReportsPage'
 import BannersPage from '@/pages/cms/BannersPage'
 import PagesPage from '@/pages/cms/PagesPage'
 import FaqsPage from '@/pages/cms/FaqsPage'
+import SupportPage from '@/pages/support/SupportPage'
 import AnnouncementsPage from '@/pages/engagement/AnnouncementsPage'
 import AdminsPage from '@/pages/admins/AdminsPage'
 import AuditLogPage from '@/pages/admins/AuditLogPage'
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: ROUTES.pages, element: <PagesPage /> },
           { path: ROUTES.faqs, element: <FaqsPage /> },
 
+          { path: ROUTES.support, element: <SupportPage /> },
           { path: ROUTES.announcements, element: <AnnouncementsPage /> },
 
           { path: ROUTES.admins, element: <AdminsPage /> },
