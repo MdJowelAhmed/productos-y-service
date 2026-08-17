@@ -11,3 +11,4 @@ dist-ssr
 coverage
 
 .vercel
+.env.local

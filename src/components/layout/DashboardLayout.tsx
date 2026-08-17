@@ -12,7 +12,7 @@ export function DashboardLayout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:pl-72">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="mx-auto max-w-7xl p-4 lg:p-6">
+        <main className="mx-auto  p-4 lg:p-8">
           <Outlet />
         </main>
       </div>

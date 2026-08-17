@@ -44,28 +44,28 @@ export default function DashboardPage() {
           label="Total Users"
           value={stats ? formatNumber(stats.totalUsers) : '—'}
           icon={Users}
-          delta={stats?.deltas.users}
+          delta={stats?.deltas?.users}
           loading={statsLoading}
         />
         <StatCard
           label="Total Stores"
           value={stats ? formatNumber(stats.totalStores) : '—'}
           icon={Store}
-          delta={stats?.deltas.stores}
+          delta={stats?.deltas?.stores}
           loading={statsLoading}
         />
         <StatCard
           label="Active Subscriptions"
           value={stats ? formatNumber(stats.activeSubscriptions) : '—'}
           icon={CreditCard}
-          delta={stats?.deltas.subscriptions}
+          delta={stats?.deltas?.subscriptions}
           loading={statsLoading}
         />
         <StatCard
           label="MRR"
           value={stats ? formatCurrency(stats.mrr) : '—'}
           icon={DollarSign}
-          delta={stats?.deltas.mrr}
+          delta={stats?.deltas?.mrr}
           loading={statsLoading}
         />
       </div>
@@ -99,7 +99,7 @@ export default function DashboardPage() {
         />
         <Table
           columns={recentColumns}
-          rows={subs?.items.slice(0, 6) ?? []}
+          rows={subs?.items?.slice(0, 6) ?? []}
           rowKey={(s) => s.id}
           loading={!subs}
         />

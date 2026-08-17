@@ -15,7 +15,7 @@ export default function LoginPage() {
   const location = useLocation()
   const [login, { isLoading }] = useLoginMutation()
 
-  const [email, setEmail] = useState('admin@julio.app')
+  const [email, setEmail] = useState('admin@gmail.com')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState<string | null>(null)
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
               type="email"
               name="email"
               label="Email"
-              placeholder="admin@julio.app"
+              placeholder="admin@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               leftIcon={<Mail className="h-4 w-4" />}
@@ -93,7 +93,7 @@ export default function LoginPage() {
           </Button>
 
           <p className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-center text-xs text-ink-500">
-            Demo: <span className="font-medium text-ink-700">admin@julio.app</span> /{' '}
+            Credentials: <span className="font-medium text-ink-700">admin@gmail.com</span> /{' '}
             <span className="font-medium text-ink-700">admin123</span>
           </p>
         </form>
