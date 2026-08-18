@@ -9,11 +9,7 @@ import { Table, type Column } from '@/components/ui/Table'
 import { SubscriptionStatusBadge, StoreTypeBadge } from '@/components/shared/StatusBadge'
 import { RevenueChart } from '@/components/dashboard/components/RevenueChart'
 import { StoreTypeChart } from '@/components/dashboard/components/StoreTypeChart'
-import {
-  useGetDashboardStatsQuery,
-  useGetRevenueSeriesQuery,
-  useGetStoreTypeBreakdownQuery,
-} from '@/services/endpoints/statsApi'
+import { useGetDashboardOverviewQuery } from '@/services/endpoints/statsApi'
 import { useGetSubscriptionsQuery } from '@/services/endpoints/billingApi'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 import { ROUTES } from '@/constants/routes'
@@ -21,10 +17,12 @@ import type { Subscription } from '@/types/models'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const { data: stats, isLoading: statsLoading } = useGetDashboardStatsQuery()
-  const { data: revenue, isLoading: revenueLoading } = useGetRevenueSeriesQuery()
-  const { data: breakdown, isLoading: breakdownLoading } = useGetStoreTypeBreakdownQuery()
+  const { data: overview, isLoading: overviewLoading } = useGetDashboardOverviewQuery()
   const { data: subs } = useGetSubscriptionsQuery({ page: 1 })
+
+  const cards = overview?.cards
+  const revenueChart = overview?.revenueChart ?? []
+  const storeTypesSplit = overview?.storeTypesSplit
 
   const recentColumns: Column<Subscription>[] = [
     { key: 'store', header: 'Store', render: (s) => <span className="font-medium text-ink-900">{s.storeName}</span> },
@@ -42,46 +40,42 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total Users"
-          value={stats ? formatNumber(stats.totalUsers) : '—'}
+          value={cards ? formatNumber(cards.totalUsers) : '—'}
           icon={Users}
-          delta={stats?.deltas?.users}
-          loading={statsLoading}
+          loading={overviewLoading}
         />
         <StatCard
           label="Total Stores"
-          value={stats ? formatNumber(stats.totalStores) : '—'}
+          value={cards ? formatNumber(cards.totalStores) : '—'}
           icon={Store}
-          delta={stats?.deltas?.stores}
-          loading={statsLoading}
+          loading={overviewLoading}
         />
         <StatCard
           label="Active Subscriptions"
-          value={stats ? formatNumber(stats.activeSubscriptions) : '—'}
+          value={cards ? formatNumber(cards.activeSubscriptions) : '—'}
           icon={CreditCard}
-          delta={stats?.deltas?.subscriptions}
-          loading={statsLoading}
+          loading={overviewLoading}
         />
         <StatCard
           label="MRR"
-          value={stats ? formatCurrency(stats.mrr) : '—'}
+          value={cards ? formatCurrency(cards.mrr) : '—'}
           icon={DollarSign}
-          delta={stats?.deltas?.mrr}
-          loading={statsLoading}
+          loading={overviewLoading}
         />
       </div>
 
       {/* Charts */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader title="Revenue" description="Subscription revenue over the last 6 months" />
+          <CardHeader title="Revenue" description="Subscription revenue over the last 12 months" />
           <CardBody>
-            {revenueLoading || !revenue ? <LoadingState /> : <RevenueChart data={revenue} />}
+            {overviewLoading || !overview ? <LoadingState /> : <RevenueChart data={revenueChart} />}
           </CardBody>
         </Card>
         <Card>
           <CardHeader title="Store Types" description="Product vs service split" />
           <CardBody>
-            {breakdownLoading || !breakdown ? <LoadingState /> : <StoreTypeChart data={breakdown} />}
+            {overviewLoading || !overview ? <LoadingState /> : <StoreTypeChart split={storeTypesSplit} />}
           </CardBody>
         </Card>
       </div>

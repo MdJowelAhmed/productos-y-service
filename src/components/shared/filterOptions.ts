@@ -5,6 +5,7 @@ import type { Option } from '@/types/common.types'
 export const ENTITY_STATUS_OPTIONS: Option[] = [
   { label: 'All statuses', value: 'all' },
   { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
   { label: 'Pending', value: 'pending' },
   { label: 'Suspended', value: 'suspended' },
 ]
@@ -13,6 +14,7 @@ export const ENTITY_STATUS_OPTIONS: Option[] = [
 export const USER_STATUS_OPTIONS: Option[] = [
   { label: 'All users', value: 'all' },
   { label: 'Active', value: 'active' },
+  { label: 'Inactive', value: 'inactive' },
   { label: 'Pending', value: 'pending' },
   { label: 'Banned', value: 'suspended' },
 ]

@@ -26,6 +26,10 @@ export interface User {
   banReason?: string
   createdAt: ISODate
   lastActiveAt: ISODate
+  role?: string
+  verified?: boolean
+  subscriptionStatus?: string
+  store?: any
 }
 
 export interface Store {
@@ -121,12 +125,43 @@ export interface Category {
 
 /* --------------------------- Dashboard ---------------------------- */
 
+export interface DashboardCards {
+  totalUsers: number
+  totalStores: number
+  activeSubscriptions: number
+  mrr: number
+}
+
+export interface StoreTypesSplit {
+  productStoresCount: number
+  serviceStoresCount: number
+  productPercentage: number
+  servicePercentage: number
+}
+
+export interface RevenueChartPoint {
+  month: string
+  revenue: number
+}
+
+export interface DashboardOverviewData {
+  cards: DashboardCards
+  storeTypesSplit: StoreTypesSplit
+  revenueChart: RevenueChartPoint[]
+}
+
+export interface DashboardOverviewResponse {
+  success: boolean
+  message: string
+  data: DashboardOverviewData
+}
+
 export interface DashboardStats {
   totalUsers: number
   totalStores: number
   activeSubscriptions: number
   mrr: number // monthly recurring revenue
-  deltas: {
+  deltas?: {
     users: number
     stores: number
     subscriptions: number
@@ -137,7 +172,7 @@ export interface DashboardStats {
 export interface TimeSeriesPoint {
   label: string
   revenue: number
-  signups: number
+  signups?: number
 }
 
 export interface StoreTypeBreakdown {

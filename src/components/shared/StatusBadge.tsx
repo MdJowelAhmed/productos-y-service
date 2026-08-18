@@ -15,6 +15,7 @@ import type {
 
 const entityTone: Record<EntityStatus, BadgeTone> = {
   active: 'green',
+  inactive: 'gray',
   pending: 'amber',
   suspended: 'red',
   rejected: 'red',
