@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Ban, CheckCircle2, Star } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, ShieldCheck, ShieldX, Star, ExternalLink } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -10,11 +10,11 @@ import { LoadingState } from '@/components/ui/Spinner'
 import { Avatar } from '@/components/shared/Avatar'
 import { StatusBadge, StoreTypeBadge } from '@/components/shared/StatusBadge'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
-import { useGetStoreQuery, useUpdateStoreStatusMutation } from '@/services/endpoints/storesApi'
 import {
-  useGetStoreProductsQuery,
-  useGetStoreServicesQuery,
-} from '@/services/endpoints/catalogApi'
+  useGetStoreQuery,
+  useUpdateStoreStatusMutation,
+  useVerifyStoreMutation,
+} from '@/services/endpoints/storesApi'
 import { formatCurrency } from '@/lib/utils'
 import { formatDate } from '@/lib/format'
 import type { Product, Service } from '@/types/models'
@@ -22,27 +22,28 @@ import type { Product, Service } from '@/types/models'
 export default function StoreDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { data: store, isLoading } = useGetStoreQuery(id)
+  const { data: storeDetail, isLoading } = useGetStoreQuery(id)
   const [updateStatus, { isLoading: updating }] = useUpdateStoreStatusMutation()
+  const [verifyStore, { isLoading: verifying }] = useVerifyStoreMutation()
   const [confirmSuspend, setConfirmSuspend] = useState(false)
 
-  // Fetch the vendor's listings; the irrelevant query is skipped by store type.
-  const isProductStore = store?.type === 'product'
-  const { data: products, isFetching: loadingProducts } = useGetStoreProductsQuery(id, {
-    skip: !store || !isProductStore,
-  })
-  const { data: services, isFetching: loadingServices } = useGetStoreServicesQuery(id, {
-    skip: !store || isProductStore,
-  })
+  const store = storeDetail?.store
+  const products = storeDetail?.products ?? []
+  const services = storeDetail?.services ?? []
 
   if (isLoading || !store) return <LoadingState />
 
+  const isProductStore = store.type === 'product'
   const isSuspended = store.status === 'suspended'
-  const isPending = store.status === 'pending'
+  const isPending = store.status === 'pending' || store.status === 'under_review'
 
-  const setStatus = async (status: 'active' | 'suspended') => {
+  const setStatus = async (status: 'active' | 'suspended' | 'rejected') => {
     await updateStatus({ id: store.id, status })
     setConfirmSuspend(false)
+  }
+
+  const toggleVerification = async () => {
+    await verifyStore({ id: store.id, isVerified: !store.isVerified })
   }
 
   const productColumns: Column<Product>[] = [
@@ -88,7 +89,22 @@ export default function StoreDetailPage() {
         title={store.name}
         description={`Owned by ${store.ownerName} · Created ${formatDate(store.createdAt)}`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={store.isVerified ? 'outline' : 'primary'}
+              onClick={toggleVerification}
+              loading={verifying}
+            >
+              {store.isVerified ? (
+                <>
+                  <ShieldX className="h-4 w-4" /> Unverify Identity
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="h-4 w-4" /> Verify Store Identity
+                </>
+              )}
+            </Button>
             {isPending && (
               <Button onClick={() => setStatus('active')} loading={updating}>
                 <CheckCircle2 className="h-4 w-4" /> Approve
@@ -112,14 +128,19 @@ export default function StoreDetailPage() {
           <CardBody className="flex flex-col items-center text-center">
             <Avatar name={store.name} src={store.logoUrl} size="lg" className="h-20 w-20 text-xl" />
             <h3 className="mt-3 text-lg font-semibold text-ink-900">{store.name}</h3>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap justify-center items-center gap-2">
               <StoreTypeBadge type={store.type} />
               <StatusBadge status={store.status} />
+              {store.isVerified ? (
+                <Badge tone="green">Verified Store</Badge>
+              ) : (
+                <Badge tone="amber">Unverified</Badge>
+              )}
             </div>
             <div className="mt-3 flex items-center gap-1 text-sm text-ink-700">
               {store.rating > 0 ? (
                 <>
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {store.rating} rating
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {store.rating} ({store.ratingCount} reviews)
                 </>
               ) : (
                 <span className="text-ink-400">Not rated yet</span>
@@ -129,18 +150,57 @@ export default function StoreDetailPage() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader title="Store details" />
-          <CardBody className="grid grid-cols-2 gap-y-4">
+          <CardHeader title="Store Information" />
+          <CardBody className="grid grid-cols-1 sm:grid-cols-2 gap-y-4">
             <Detail label="Owner" value={store.ownerName} />
             <Detail label="Category" value={store.category} />
+            <Detail label="Email" value={store.email || '—'} />
+            <Detail label="Phone" value={store.phone || '—'} />
+            <Detail label="WhatsApp" value={store.whatsapp || '—'} />
+            <Detail label="Address" value={store.streetAddress ? `${store.streetAddress}, ${store.city || ''}` : '—'} />
             <Detail label="Subscription plan" value={store.planName ?? 'None'} />
-            <Detail label="Listings" value={String(store.listingCount)} />
-            <Detail label="Store type" value={store.type} />
+            <Detail label="Listings count" value={String(store.listingCount || (isProductStore ? products.length : services.length))} />
+            <Detail label="Visitor count" value={String(store.visitorCount ?? 0)} />
+            {store.description && (
+              <div className="sm:col-span-2">
+                <p className="text-xs text-ink-500">Description</p>
+                <p className="mt-0.5 text-sm text-ink-700">{store.description}</p>
+              </div>
+            )}
           </CardBody>
         </Card>
       </div>
 
-      {/* Vendor's listings — admins inspect catalog per store (multi-vendor). */}
+      {/* Identity Verification & Legal Documents Card */}
+      {(store.documentType || store.businessLicenseNumber || store.tinNumber || store.documentFrontUrl || store.tradeLicenseUrl) && (
+        <Card className="mt-4">
+          <CardHeader
+            title="Identity Verification & Legal Documents"
+            description="Submitted business licenses and identification documents."
+          />
+          <CardBody>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <Detail label="Document Type" value={store.documentType?.toUpperCase() || '—'} />
+              <Detail label="Business License No" value={store.businessLicenseNumber || '—'} />
+              <Detail label="TIN Number" value={store.tinNumber || '—'} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {store.documentFrontUrl && (
+                <DocumentPreview label="Document Front" url={store.documentFrontUrl} />
+              )}
+              {store.documentBackUrl && (
+                <DocumentPreview label="Document Back" url={store.documentBackUrl} />
+              )}
+              {store.tradeLicenseUrl && (
+                <DocumentPreview label="Trade License" url={store.tradeLicenseUrl} />
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Vendor's listings */}
       <Card className="mt-4">
         <CardHeader
           title={isProductStore ? 'Products' : 'Services'}
@@ -149,18 +209,16 @@ export default function StoreDetailPage() {
         {isProductStore ? (
           <Table
             columns={productColumns}
-            rows={products ?? []}
+            rows={products}
             rowKey={(p) => p.id}
-            loading={loadingProducts}
-            emptyTitle="No products yet"
+            emptyTitle="No products found"
           />
         ) : (
           <Table
             columns={serviceColumns}
-            rows={services ?? []}
+            rows={services}
             rowKey={(s) => s.id}
-            loading={loadingServices}
-            emptyTitle="No services yet"
+            emptyTitle="No services found"
           />
         )}
       </Card>
@@ -183,7 +241,28 @@ function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-xs text-ink-500">{label}</p>
-      <p className="mt-0.5 text-sm font-medium capitalize text-ink-900">{value}</p>
+      <p className="mt-0.5 text-sm font-medium text-ink-900">{value}</p>
+    </div>
+  )
+}
+
+function DocumentPreview({ label, url }: { label: string; url: string }) {
+  return (
+    <div className="rounded-lg border border-ink-100 p-3 bg-ink-50/50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-ink-700">{label}</span>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-brand-600 hover:text-brand-700 inline-flex items-center gap-1"
+        >
+          View full <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+      <div className="relative aspect-video w-full overflow-hidden rounded bg-ink-100">
+        <img src={url} alt={label} className="h-full w-full object-cover" />
+      </div>
     </div>
   )
 }

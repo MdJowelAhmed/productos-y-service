@@ -19,6 +19,7 @@ const entityTone: Record<EntityStatus, BadgeTone> = {
   pending: 'amber',
   suspended: 'red',
   rejected: 'red',
+  under_review: 'blue',
 }
 
 const subscriptionTone: Record<SubscriptionStatus, BadgeTone> = {

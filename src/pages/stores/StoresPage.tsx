@@ -60,11 +60,11 @@ export default function StoresPage() {
           <Button size="sm" variant="outline" onClick={() => navigate(ROUTES.storeDetail(s.id))}>
             <Eye className="h-3.5 w-3.5" /> View
           </Button>
-          {s.status === 'pending' ? (
+          {s.status === 'pending' || s.status === 'under_review' ? (
             <Button size="sm" disabled={updating} onClick={() => updateStatus({ id: s.id, status: 'active' })}>
               <CheckCircle2 className="h-3.5 w-3.5" /> Approve
             </Button>
-          ) : s.status === 'suspended' ? (
+          ) : s.status === 'suspended' || s.status === 'rejected' ? (
             <Button size="sm" variant="outline" disabled={updating} onClick={() => updateStatus({ id: s.id, status: 'active' })}>
               <CheckCircle2 className="h-3.5 w-3.5" /> Reactivate
             </Button>

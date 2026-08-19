@@ -39,6 +39,7 @@ export interface Store {
   ownerId: ID
   ownerName: string
   logoUrl?: string
+  coverImageUrl?: string
   category: string
   status: EntityStatus
   /** Current subscription id, if the store has one. */
@@ -47,6 +48,29 @@ export interface Store {
   listingCount: number
   rating: number
   createdAt: ISODate
+  description?: string
+  phone?: string
+  whatsapp?: string
+  email?: string
+  streetAddress?: string
+  city?: string
+  postalCode?: string
+  businessLicenseNumber?: string
+  tinNumber?: string
+  tradeLicenseUrl?: string
+  documentFrontUrl?: string
+  documentBackUrl?: string
+  documentType?: string
+  isVerified?: boolean
+  ratingCount?: number
+  visitorCount?: number
+  owner?: any
+}
+
+export interface StoreDetailData {
+  store: Store
+  products: Product[]
+  services: Service[]
 }
 
 export interface Product {
