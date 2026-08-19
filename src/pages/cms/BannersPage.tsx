@@ -106,6 +106,8 @@ export default function BannersPage() {
   )
 }
 
+import { imageUrl } from '@/components/shared/getImageUrl'
+
 function BannerCard({
   banner,
   onToggle,
@@ -117,11 +119,12 @@ function BannerCard({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const bannerSrc = imageUrl(banner.imageUrl)
   return (
     <Card className="overflow-hidden">
       <div className="flex h-32 items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-        {banner.imageUrl ? (
-          <img src={banner.imageUrl} alt={banner.title} className="h-full w-full object-cover" />
+        {bannerSrc ? (
+          <img src={bannerSrc} alt={banner.title} className="h-full w-full object-cover" />
         ) : (
           <ImageIcon className="h-8 w-8 opacity-70" />
         )}

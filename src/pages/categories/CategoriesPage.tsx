@@ -32,8 +32,21 @@ const TYPE_OPTIONS: Option<StoreType>[] = [
   { label: 'Service', value: 'service' },
 ]
 
+import { useSearchParams } from 'react-router-dom'
+
 export default function CategoriesPage() {
-  const [type, setType] = useState<StoreType>('product')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeParam = searchParams.get('type') || searchParams.get('tab') || 'product'
+  const type = (['product', 'service'].includes(typeParam) ? typeParam : 'product') as StoreType
+
+  const handleTypeChange = (newType: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('type', newType)
+      return next
+    })
+  }
+
   const { data: categories, isLoading } = useGetCategoriesQuery()
   const [toggleCategory] = useToggleCategoryMutation()
   const [deleteCategory, { isLoading: deleting }] = useDeleteCategoryMutation()
@@ -92,7 +105,7 @@ export default function CategoriesPage() {
       <Card>
         <CardHeader
           title="Manage categories"
-          action={<Tabs value={type} onChange={(v) => setType(v as StoreType)} options={TYPE_TABS} />}
+          action={<Tabs value={type} onChange={handleTypeChange} options={TYPE_TABS} />}
         />
         <Table
           columns={columns}

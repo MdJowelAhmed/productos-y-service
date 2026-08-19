@@ -18,6 +18,7 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { formatDate } from '@/lib/format'
 import type { Product, Service, StoreType } from '@/types/models'
+import { imageUrl } from '@/components/shared/getImageUrl'
 
 export default function StoreDetailPage() {
   const { id = '' } = useParams()
@@ -256,12 +257,13 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 function DocumentPreview({ label, url }: { label: string; url: string }) {
+  const fullUrl = imageUrl(url)
   return (
     <div className="rounded-lg border border-ink-100 p-3 bg-ink-50/50">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-ink-700">{label}</span>
         <a
-          href={url}
+          href={fullUrl}
           target="_blank"
           rel="noreferrer"
           className="text-xs text-brand-600 hover:text-brand-700 inline-flex items-center gap-1"
@@ -270,7 +272,7 @@ function DocumentPreview({ label, url }: { label: string; url: string }) {
         </a>
       </div>
       <div className="relative aspect-video w-full overflow-hidden rounded bg-ink-100">
-        <img src={url} alt={label} className="h-full w-full object-cover" />
+        <img src={fullUrl} alt={label} className="h-full w-full object-cover" />
       </div>
     </div>
   )

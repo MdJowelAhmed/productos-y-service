@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Ban, CheckCircle2, Eye } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -20,8 +19,20 @@ import type { Store, StoreType } from '@/types/models'
 
 export default function StoresPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeParam = searchParams.get('type') || searchParams.get('tab') || 'all'
+  const type = (['all', 'product', 'service'].includes(typeParam) ? typeParam : 'all') as StoreType | 'all'
+
   const { search, setSearch, status, setStatus, page, setPage, params } = useListParams()
-  const [type, setType] = useState<StoreType | 'all'>('all')
+
+  const handleTypeChange = (newType: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('type', newType)
+      return next
+    })
+    setPage(1)
+  }
 
   const { data, isFetching } = useGetStoresQuery({ ...params, type })
   const [updateStatus, { isLoading: updating }] = useUpdateStoreStatusMutation()
@@ -110,10 +121,7 @@ export default function StoresPage() {
       <div className="mb-4">
         <Tabs
           value={type}
-          onChange={(v) => {
-            setType(v as StoreType | 'all')
-            setPage(1)
-          }}
+          onChange={handleTypeChange}
           options={STORE_TYPE_TABS}
         />
       </div>
