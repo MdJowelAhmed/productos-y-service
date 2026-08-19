@@ -141,10 +141,16 @@ export interface Subscription {
 
 export interface Category {
   id: ID
+  _id?: string
   name: string
+  description?: string
   type: StoreType
+  status?: string
+  isDeleted?: boolean
   listingCount: number
   isActive: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
 }
 
 /* --------------------------- Dashboard ---------------------------- */

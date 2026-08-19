@@ -58,7 +58,16 @@ export default function CategoriesPage() {
   const rows = (categories ?? []).filter((c) => c.type === type)
 
   const columns: Column<Category>[] = [
-    { key: 'name', header: 'Category', render: (c) => <span className="font-medium text-ink-900">{c.name}</span> },
+    {
+      key: 'name',
+      header: 'Category',
+      render: (c) => (
+        <div>
+          <p className="font-medium text-ink-900">{c.name}</p>
+          {c.description && <p className="text-xs text-ink-500 line-clamp-1">{c.description}</p>}
+        </div>
+      ),
+    },
     { key: 'type', header: 'Type', render: (c) => <StoreTypeBadge type={c.type} /> },
     { key: 'count', header: 'Listings', align: 'right', render: (c) => c.listingCount },
     {
@@ -157,14 +166,19 @@ function CategoryFormModal({
 }) {
   const [createCategory, { isLoading: creating }] = useCreateCategoryMutation()
   const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation()
-  const [form, setForm] = useState<CategoryInput>({ name: '', type: defaultType, isActive: true })
+  const [form, setForm] = useState<CategoryInput>({ name: '', description: '', type: defaultType, status: 'active' })
 
   useEffect(() => {
     if (!open) return
     setForm(
       category
-        ? { name: category.name, type: category.type, isActive: category.isActive }
-        : { name: '', type: defaultType, isActive: true },
+        ? {
+            name: category.name,
+            description: category.description || '',
+            type: category.type,
+            status: category.status || (category.isActive ? 'active' : 'inactive'),
+          }
+        : { name: '', description: '', type: defaultType, status: 'active' },
     )
   }, [open, category, defaultType])
 
@@ -196,7 +210,14 @@ function CategoryFormModal({
           label="Name"
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          placeholder="Category name (e.g. Electronics)"
           required
+        />
+        <Input
+          label="Description"
+          value={form.description ?? ''}
+          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          placeholder="Short category description..."
         />
         <Select
           label="Store type"
@@ -205,7 +226,11 @@ function CategoryFormModal({
           onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as StoreType }))}
         />
         <label className="flex items-center gap-2 text-sm text-ink-700">
-          <Switch checked={form.isActive} onChange={(v) => setForm((f) => ({ ...f, isActive: v }))} label="Active" />
+          <Switch
+            checked={form.status === 'active'}
+            onChange={(active) => setForm((f) => ({ ...f, status: active ? 'active' : 'inactive' }))}
+            label="Active"
+          />
           Active
         </label>
       </form>
