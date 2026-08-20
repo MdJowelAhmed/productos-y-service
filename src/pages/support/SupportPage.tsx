@@ -16,7 +16,7 @@ import {
   useSendMessageMutation,
   useMarkSupportTicketReadMutation,
 } from '@/services/endpoints/supportApi'
-import { formatRelative, formatDateTime } from '@/lib/format'
+import { formatRelative, formatMessageTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Chat, ChatParticipant, ChatMessage } from '@/types/models'
 
@@ -243,21 +243,30 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
               senderRole === 'admin' ||
               senderNameStr.toLowerCase().includes('admin')
 
-            const senderName = isAgent ? 'You' : (senderObj?.name || customerName)
             const imgPath = m.image ? imageUrl(m.image) : ''
+            const timeStr = formatMessageTime(m.createdAt)
 
             return (
-              <div key={m.id || m._id} className={cn('flex', isAgent ? 'justify-end' : 'justify-start')}>
-                <div className={cn('max-w-[78%]', isAgent ? 'text-right' : 'text-left')}>
+              <div key={m.id || m._id} className={cn('flex items-end gap-2', isAgent ? 'justify-end' : 'justify-start')}>
+                {!isAgent && (
+                  <Avatar
+                    name={customerName}
+                    src={counterparty?.profileImage}
+                    size="sm"
+                    className="h-7 w-7 text-[10px] shrink-0 mb-0.5"
+                  />
+                )}
+
+                <div className={cn('max-w-[75%]', isAgent ? 'text-right' : 'text-left')}>
                   <div
                     className={cn(
-                      'inline-block rounded-2xl px-4 py-2.5 text-sm shadow-sm',
+                      'inline-block rounded-2xl px-4 py-2.5 text-sm shadow-xs',
                       isAgent
-                        ? 'bg-brand-600 text-white rounded-br-none'
-                        : 'bg-white text-ink-900 ring-1 ring-ink-100 rounded-bl-none',
+                        ? 'bg-brand-600 text-white rounded-br-xs'
+                        : 'bg-white text-ink-900 ring-1 ring-ink-100 rounded-bl-xs',
                     )}
                   >
-                    {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                    {m.text && <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>}
                     {imgPath && (
                       <img
                         src={imgPath}
@@ -266,10 +275,21 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
                       />
                     )}
                   </div>
-                  <p className="mt-1 px-1 text-[11px] text-ink-400">
-                    {senderName} · {formatDateTime(m.createdAt)}
-                  </p>
+                  {timeStr && (
+                    <p className={cn('mt-0.5 px-1 text-[10px] text-ink-400', isAgent && 'text-right')}>
+                      {timeStr}
+                    </p>
+                  )}
                 </div>
+
+                {isAgent && (
+                  <Avatar
+                    name={user?.name || 'Admin'}
+                    src={user?.avatarUrl}
+                    size="sm"
+                    className="h-7 w-7 text-[10px] shrink-0 mb-0.5"
+                  />
+                )}
               </div>
             )
           })
