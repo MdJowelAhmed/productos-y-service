@@ -3,15 +3,16 @@ import { getSocket } from '@/services/socket'
 import { useAppDispatch } from '@/store/hooks'
 import { supportApi } from '@/services/endpoints/supportApi'
 import { useAuth } from '@/hooks/useAuth'
+import { useGetProfileQuery } from '@/services/endpoints/authApi'
 
 export function useSocketEvents(activeChatId?: string | null) {
   const { user } = useAuth()
+  const { data: profile } = useGetProfileQuery()
   const dispatch = useAppDispatch()
-  const userId = user?.id || (user as any)?._id
+
+  const userId = (profile as any)?._id || profile?.id || user?.id || (user as any)?._id
 
   useEffect(() => {
-    if (!userId) return
-
     const socket = getSocket()
 
     const handleNewChat = (_data: any) => {
@@ -50,7 +51,7 @@ export function useSocketEvents(activeChatId?: string | null) {
         )
       }
 
-      dispatch(supportApi.util.invalidateTags(['SupportTicket']))
+      dispatch(supportApi.util.invalidateTags(['SupportTicket', 'SupportThread']))
     }
 
     const handleUnreadCountUpdate = (_data: any) => {
@@ -61,24 +62,60 @@ export function useSocketEvents(activeChatId?: string | null) {
       dispatch(supportApi.util.invalidateTags(['SupportTicket']))
     }
 
-    const newChatEvent = `newChat::${userId}`
-    const chatDeletedEvent = `chatDeletedForUser::${userId}`
-    const newMessageEvent = `newMessage::${userId}`
-    const unreadCountEvent = `unreadCountUpdate::${userId}`
-    const chatListEvent = `chatListUpdate::${userId}`
+    const handleSyncOnConnect = () => {
+      dispatch(supportApi.util.invalidateTags(['SupportTicket', 'SupportThread']))
+    }
 
-    socket.on(newChatEvent, handleNewChat)
-    socket.on(chatDeletedEvent, handleChatDeleted)
-    socket.on(newMessageEvent, handleNewMessage)
-    socket.on(unreadCountEvent, handleUnreadCountUpdate)
-    socket.on(chatListEvent, handleChatListUpdate)
+    const eventsToListen = [
+      'newMessage',
+      'message',
+      'newChat',
+      'chatDeletedForUser',
+      'unreadCountUpdate',
+      'chatListUpdate',
+    ]
+
+    if (userId) {
+      eventsToListen.push(
+        `newChat::${userId}`,
+        `chatDeletedForUser::${userId}`,
+        `newMessage::${userId}`,
+        `unreadCountUpdate::${userId}`,
+        `chatListUpdate::${userId}`,
+      )
+    }
+
+    // Bind real-time event listeners
+    eventsToListen.forEach((evt) => {
+      if (evt.includes('newMessage') || evt === 'message') {
+        socket.on(evt, handleNewMessage)
+      } else if (evt.includes('newChat')) {
+        socket.on(evt, handleNewChat)
+      } else if (evt.includes('chatDeleted')) {
+        socket.on(evt, handleChatDeleted)
+      } else if (evt.includes('unreadCount')) {
+        socket.on(evt, handleUnreadCountUpdate)
+      } else if (evt.includes('chatList')) {
+        socket.on(evt, handleChatListUpdate)
+      }
+    })
+
+    // Reconnection & connection sync handlers
+    socket.on('connect', handleSyncOnConnect)
+    socket.on('reconnect', handleSyncOnConnect)
+
+    // Continuous 15-second background polling heartbeat fallback
+    const pollInterval = setInterval(() => {
+      dispatch(supportApi.util.invalidateTags(['SupportTicket']))
+    }, 15000)
 
     return () => {
-      socket.off(newChatEvent, handleNewChat)
-      socket.off(chatDeletedEvent, handleChatDeleted)
-      socket.off(newMessageEvent, handleNewMessage)
-      socket.off(unreadCountEvent, handleUnreadCountUpdate)
-      socket.off(chatListEvent, handleChatListUpdate)
+      eventsToListen.forEach((evt) => {
+        socket.off(evt)
+      })
+      socket.off('connect', handleSyncOnConnect)
+      socket.off('reconnect', handleSyncOnConnect)
+      clearInterval(pollInterval)
     }
   }, [userId, activeChatId, dispatch])
 }

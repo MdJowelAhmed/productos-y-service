@@ -209,12 +209,12 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
     }
   }, [pageData, page])
 
-  // Auto-scroll on initial load & preserve scroll position when loading older pages
+  // Auto-scroll on initial load, preserve scroll position on older page load, and scroll down on new real-time message
   useEffect(() => {
     const container = scrollRef.current
-    if (!container) return
+    if (!container || accumulatedMessages.length === 0) return
 
-    if (isInitialScrollRef.current && accumulatedMessages.length > 0) {
+    if (isInitialScrollRef.current) {
       container.scrollTo({ top: container.scrollHeight })
       isInitialScrollRef.current = false
     } else if (oldScrollHeightRef.current > 0) {
@@ -222,6 +222,14 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
       const diff = newScrollHeight - oldScrollHeightRef.current
       container.scrollTop = diff
       oldScrollHeightRef.current = 0
+    } else {
+      // New real-time message arrived or message sent
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 300
+
+      if (isNearBottom) {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+      }
     }
   }, [accumulatedMessages])
 

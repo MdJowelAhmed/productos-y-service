@@ -21,16 +21,23 @@ export function getSocket(): Socket {
 
     const token =
       typeof localStorage !== 'undefined'
-        ? localStorage.getItem(STORAGE_KEYS.token) || localStorage.getItem('token')
+        ? localStorage.getItem(STORAGE_KEYS.token) ||
+          localStorage.getItem('token') ||
+          localStorage.getItem('access_token')
         : null
 
+    const formattedToken = token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : ''
+
     socket = io(socketUrl, {
-      auth: { token: token ? `Bearer ${token}` : undefined },
+      auth: { token: formattedToken, authorization: formattedToken },
+      query: { token: formattedToken },
       transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     })
   }
 
