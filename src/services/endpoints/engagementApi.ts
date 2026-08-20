@@ -1,6 +1,5 @@
 import { api } from '@/services/api'
-import type { ListParams, Paginated } from '@/types/api.types'
-import type { Announcement, AnnouncementAudience, AuditLog } from '@/types/models'
+import type { Announcement, AnnouncementAudience } from '@/types/models'
 
 export interface CreateAnnouncementRequest {
   title: string
@@ -27,36 +26,10 @@ export const engagementApi = api.injectEndpoints({
       transformResponse: (response: any) => response?.data || response,
       invalidatesTags: ['Announcement'],
     }),
-
-    getAuditLogs: builder.query<Paginated<AuditLog>, ListParams | void>({
-      query: (params) => {
-        const queryParams: Record<string, any> = {}
-        if (params?.page) queryParams.page = params.page
-        if (params?.pageSize) queryParams.limit = params.pageSize
-        if (params?.search && params.search.trim()) queryParams.search = params.search.trim()
-        return {
-          url: '/audit-logs',
-          method: 'GET',
-          params: queryParams,
-        }
-      },
-      transformResponse: (response: any): Paginated<AuditLog> => {
-        const items = Array.isArray(response?.data) ? response.data : []
-        const meta = response?.meta || {}
-        return {
-          items,
-          total: meta.total ?? items.length,
-          page: meta.page ?? 1,
-          pageSize: meta.limit ?? 10,
-        }
-      },
-      providesTags: ['AuditLog'],
-    }),
   }),
 })
 
 export const {
   useGetAnnouncementsQuery,
   useCreateAnnouncementMutation,
-  useGetAuditLogsQuery,
 } = engagementApi

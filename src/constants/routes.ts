@@ -12,9 +12,6 @@ export const ROUTES = {
 
   categories: '/categories',
 
-  // Moderation
-  reports: '/reports',
-
   // Billing
   subscriptions: '/subscriptions',
   plans: '/plans',
@@ -31,6 +28,5 @@ export const ROUTES = {
 
   // Administration
   admins: '/admins',
-  auditLog: '/audit-log',
   settings: '/settings',
 } as const
