@@ -59,7 +59,30 @@ export function mapBackendBannerToBanner(raw: any): Banner {
   }
 }
 
-export type FaqInput = Omit<Faq, 'id'>
+export function mapBackendFaqToFaq(raw: any): Faq {
+  if (!raw) return raw
+  const id = String(raw._id || raw.id || '')
+  return {
+    id,
+    _id: raw._id || id,
+    question: raw.question || '',
+    answer: raw.answer || '',
+    category: raw.category || 'General',
+    order: typeof raw.order === 'number' ? raw.order : 0,
+    isPublished: raw.isPublished !== false,
+    isDeleted: Boolean(raw.isDeleted),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  }
+}
+
+export type FaqInput = {
+  question: string
+  answer: string
+  category?: string
+  order?: number
+  isPublished?: boolean
+}
 
 export const cmsApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -217,9 +240,21 @@ export const cmsApi = api.injectEndpoints({
 
     /* FAQs */
     getFaqs: builder.query<Faq[], void>({
-      queryFn: endpoint({ mock: () => faqs.map((f) => ({ ...f })), real: () => '/cms/faqs' }),
+      queryFn: endpoint({
+        mock: () => faqs.map((f) => mapBackendFaqToFaq(f)),
+        real: () => ({ url: '/faqs', method: 'GET' }),
+        transformReal: (response: any): Faq[] => {
+          const list = Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response)
+            ? response
+            : []
+          return list.map(mapBackendFaqToFaq)
+        },
+      }),
       providesTags: ['Faq'],
     }),
+
     toggleFaq: builder.mutation<Faq, { id: ID; isPublished: boolean }>({
       queryFn: endpoint({
         mock: ({ id, isPublished }) => {
@@ -228,12 +263,12 @@ export const cmsApi = api.injectEndpoints({
           faq.isPublished = isPublished
           return faq
         },
-        real: ({ id, isPublished }) => ({ url: `/cms/faqs/${id}`, method: 'PATCH', body: { isPublished } }),
+        real: ({ id, isPublished }) => ({ url: `/faqs/${id}`, method: 'PATCH', body: { isPublished } }),
       }),
       async onQueryStarted({ id, isPublished }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
           cmsApi.util.updateQueryData('getFaqs', undefined, (draft) => {
-            const faq = draft.find((f) => f.id === id)
+            const faq = draft.find((f) => f.id === id || f._id === id)
             if (faq) faq.isPublished = isPublished
           }),
         )
@@ -243,19 +278,33 @@ export const cmsApi = api.injectEndpoints({
           patch.undo()
         }
       },
+      invalidatesTags: ['Faq'],
     }),
+
     createFaq: builder.mutation<Faq, FaqInput>({
       queryFn: endpoint({
         mock: (body) => {
-          const created: Faq = { id: genId('faq'), ...body }
+          const created: Faq = mapBackendFaqToFaq({
+            _id: genId('faq'),
+            ...body,
+          })
           faqs.push(created)
           return created
         },
-        real: (body) => ({ url: '/cms/faqs', method: 'POST', body }),
+        real: (body) => ({
+          url: '/faqs',
+          method: 'POST',
+          body: {
+            question: body.question,
+            answer: body.answer,
+          },
+        }),
+        transformReal: (response: any) => mapBackendFaqToFaq(response?.data || response),
       }),
       invalidatesTags: ['Faq'],
     }),
-    updateFaq: builder.mutation<Faq, { id: ID } & FaqInput>({
+
+    updateFaq: builder.mutation<Faq, { id: ID } & Partial<FaqInput>>({
       queryFn: endpoint({
         mock: ({ id, ...changes }) => {
           const faq = faqs.find((f) => f.id === id)
@@ -263,10 +312,19 @@ export const cmsApi = api.injectEndpoints({
           Object.assign(faq, changes)
           return faq
         },
-        real: ({ id, ...body }) => ({ url: `/cms/faqs/${id}`, method: 'PUT', body }),
+        real: ({ id, ...body }) => ({
+          url: `/faqs/${id}`,
+          method: 'PATCH',
+          body: {
+            question: body.question,
+            answer: body.answer,
+          },
+        }),
+        transformReal: (response: any) => mapBackendFaqToFaq(response?.data || response),
       }),
       invalidatesTags: ['Faq'],
     }),
+
     deleteFaq: builder.mutation<{ id: ID }, ID>({
       queryFn: endpoint({
         mock: (id) => {
@@ -275,7 +333,7 @@ export const cmsApi = api.injectEndpoints({
           faqs.splice(idx, 1)
           return { id }
         },
-        real: (id) => ({ url: `/cms/faqs/${id}`, method: 'DELETE' }),
+        real: (id) => ({ url: `/faqs/${id}`, method: 'DELETE' }),
       }),
       invalidatesTags: ['Faq'],
     }),

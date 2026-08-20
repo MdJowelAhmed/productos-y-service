@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapBackendBannerToBanner } from './cmsApi'
+import { mapBackendBannerToBanner, mapBackendFaqToFaq } from './cmsApi'
 
 describe('mapBackendBannerToBanner', () => {
   it('correctly transforms raw GET /banners/all backend object into Banner model', () => {
@@ -41,5 +41,25 @@ describe('mapBackendBannerToBanner', () => {
 
     expect(mapped.status).toBe('inactive')
     expect(mapped.isActive).toBe(false)
+  })
+})
+
+describe('mapBackendFaqToFaq', () => {
+  it('correctly transforms raw GET /faqs backend object into Faq model', () => {
+    const rawFaq = {
+      _id: '6a8685a48ecf4b44174885be',
+      question: 'Q1',
+      answer: 'A1',
+      isDeleted: false,
+      createdAt: '2026-08-20T04:42:12.037Z',
+      updatedAt: '2026-08-20T04:42:12.037Z',
+    }
+
+    const mapped = mapBackendFaqToFaq(rawFaq)
+
+    expect(mapped.id).toBe('6a8685a48ecf4b44174885be')
+    expect(mapped.question).toBe('Q1')
+    expect(mapped.answer).toBe('A1')
+    expect(mapped.isDeleted).toBe(false)
   })
 })

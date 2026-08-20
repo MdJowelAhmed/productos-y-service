@@ -363,11 +363,15 @@ export interface ContentPage {
 
 export interface Faq {
   id: ID
+  _id?: ID
   question: string
   answer: string
-  category: string
-  order: number
-  isPublished: boolean
+  category?: string
+  order?: number
+  isPublished?: boolean
+  isDeleted?: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
 }
 
 /* ---------------------------- Billing ----------------------------- */
