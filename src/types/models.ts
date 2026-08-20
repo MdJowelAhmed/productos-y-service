@@ -333,12 +333,20 @@ export type BannerPlacement = 'home_top' | 'explore' | 'product_store' | 'servic
 
 export interface Banner {
   id: ID
+  _id?: ID
   title: string
+  name?: string
+  description?: string
   imageUrl?: string
-  placement: BannerPlacement
+  image?: string
+  placement?: BannerPlacement
   isActive: boolean
-  startsAt: ISODate
-  endsAt: ISODate
+  status?: string
+  isDeleted?: boolean
+  startsAt?: ISODate
+  endsAt?: ISODate
+  createdAt?: ISODate
+  updatedAt?: ISODate
 }
 
 export type ContentStatus = 'published' | 'draft'

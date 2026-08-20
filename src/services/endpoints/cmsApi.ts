@@ -3,7 +3,7 @@ import { endpoint } from '@/services/mock/mockQuery'
 import { banners, contentPages, faqs } from '@/services/mock/seed'
 import { genId } from '@/lib/utils'
 import type { ID } from '@/types/common.types'
-import type { Banner, ContentPage, ContentStatus, Faq } from '@/types/models'
+import type { Banner, BannerPlacement, ContentPage, ContentStatus, Faq } from '@/types/models'
 
 export interface UpdateContentPageRequest {
   id: ID
@@ -12,63 +12,155 @@ export interface UpdateContentPageRequest {
   status: ContentStatus
 }
 
-export type BannerInput = Omit<Banner, 'id'>
+export interface BannerInput {
+  name?: string
+  title?: string
+  description?: string
+  imageFile?: File | null
+  imageUrl?: string
+  placement?: BannerPlacement
+  isActive?: boolean
+  startsAt?: string
+  endsAt?: string
+}
+
+export function mapBackendBannerToBanner(raw: any): Banner {
+  if (!raw) return raw
+  const id = String(raw._id || raw.id || '')
+  const name = raw.name || raw.title || ''
+  const description = raw.description || ''
+  const imagePath = raw.image || raw.imageUrl || ''
+  const rawStatus = raw.status
+  const isActive = typeof rawStatus === 'boolean' ? rawStatus : rawStatus === 'active' || raw.isActive !== false
+
+  return {
+    id,
+    _id: raw._id || id,
+    title: name,
+    name,
+    description,
+    imageUrl: imagePath,
+    image: imagePath,
+    placement: raw.placement || 'home_top',
+    isActive,
+    status: typeof rawStatus === 'boolean' ? (rawStatus ? 'active' : 'inactive') : (rawStatus || (isActive ? 'active' : 'inactive')),
+    isDeleted: raw.isDeleted,
+    startsAt: raw.startsAt || raw.createdAt || new Date().toISOString(),
+    endsAt: raw.endsAt || raw.updatedAt || new Date().toISOString(),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  }
+}
+
 export type FaqInput = Omit<Faq, 'id'>
 
 export const cmsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     /* Banners */
     getBanners: builder.query<Banner[], void>({
-      queryFn: endpoint({ mock: () => banners.map((b) => ({ ...b })), real: () => '/cms/banners' }),
+      queryFn: endpoint({
+        mock: () => banners.map((b) => mapBackendBannerToBanner(b)),
+        real: () => ({ url: '/banners/all', method: 'GET' }),
+        transformReal: (response: any): Banner[] => {
+          const list = Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response)
+            ? response
+            : []
+          return list.map(mapBackendBannerToBanner)
+        },
+      }),
       providesTags: ['Banner'],
     }),
+
     toggleBanner: builder.mutation<Banner, { id: ID; isActive: boolean }>({
       queryFn: endpoint({
         mock: ({ id, isActive }) => {
           const banner = banners.find((b) => b.id === id)
           if (!banner) throw new Error('Banner not found')
           banner.isActive = isActive
+          banner.status = isActive ? 'active' : 'inactive'
           return banner
         },
-        real: ({ id, isActive }) => ({ url: `/cms/banners/${id}`, method: 'PATCH', body: { isActive } }),
-      }),
-      async onQueryStarted({ id, isActive }, { dispatch, queryFulfilled }) {
-        const patch = dispatch(
-          cmsApi.util.updateQueryData('getBanners', undefined, (draft) => {
-            const banner = draft.find((b) => b.id === id)
-            if (banner) banner.isActive = isActive
-          }),
-        )
-        try {
-          await queryFulfilled
-        } catch {
-          patch.undo()
-        }
-      },
-    }),
-    createBanner: builder.mutation<Banner, BannerInput>({
-      queryFn: endpoint({
-        mock: (body) => {
-          const created: Banner = { id: genId('bnr'), ...body }
-          banners.unshift(created)
-          return created
-        },
-        real: (body) => ({ url: '/cms/banners', method: 'POST', body }),
+        real: ({ id, isActive }) => ({
+          url: `/banners/status/${id}`,
+          method: 'PATCH',
+          body: { status: isActive },
+        }),
+        transformReal: (response: any) => mapBackendBannerToBanner(response?.data || response),
       }),
       invalidatesTags: ['Banner'],
     }),
-    updateBanner: builder.mutation<Banner, { id: ID } & BannerInput>({
+
+    createBanner: builder.mutation<Banner, BannerInput>({
+      queryFn: endpoint({
+        mock: (body) => {
+          const created: Banner = mapBackendBannerToBanner({
+            _id: genId('bnr'),
+            name: body.name || body.title || 'Untitled Banner',
+            description: body.description || '',
+            image: body.imageUrl || '/uploads/image/default.png',
+            status: 'active',
+            ...body,
+          })
+          banners.unshift(created)
+          return created
+        },
+        real: (body) => {
+          const formData = new FormData()
+          formData.append(
+            'data',
+            JSON.stringify({
+              name: body.name || body.title || '',
+              description: body.description || '',
+            }),
+          )
+          if (body.imageFile) {
+            formData.append('image', body.imageFile)
+          }
+          return {
+            url: '/banners',
+            method: 'POST',
+            body: formData,
+          }
+        },
+        transformReal: (response: any) => mapBackendBannerToBanner(response?.data || response),
+      }),
+      invalidatesTags: ['Banner'],
+    }),
+
+    updateBanner: builder.mutation<Banner, { id: ID } & Partial<BannerInput>>({
       queryFn: endpoint({
         mock: ({ id, ...changes }) => {
           const banner = banners.find((b) => b.id === id)
           if (!banner) throw new Error('Banner not found')
           Object.assign(banner, changes)
+          if (changes.name) banner.title = changes.name
           return banner
         },
-        real: ({ id, ...body }) => ({ url: `/cms/banners/${id}`, method: 'PUT', body }),
+        real: ({ id, ...body }) => {
+          const formData = new FormData()
+          formData.append(
+            'data',
+            JSON.stringify({
+              name: body.name || body.title || '',
+              description: body.description || '',
+            }),
+          )
+          if (body.imageFile) {
+            formData.append('image', body.imageFile)
+          }
+          return {
+            url: `/banners/${id}`,
+            method: 'PATCH',
+            body: formData,
+          }
+        },
+        transformReal: (response: any) => mapBackendBannerToBanner(response?.data || response),
       }),
       invalidatesTags: ['Banner'],
     }),
+
     deleteBanner: builder.mutation<{ id: ID }, ID>({
       queryFn: endpoint({
         mock: (id) => {
@@ -77,7 +169,7 @@ export const cmsApi = api.injectEndpoints({
           banners.splice(idx, 1)
           return { id }
         },
-        real: (id) => ({ url: `/cms/banners/${id}`, method: 'DELETE' }),
+        real: (id) => ({ url: `/banners/${id}`, method: 'DELETE' }),
       }),
       invalidatesTags: ['Banner'],
     }),

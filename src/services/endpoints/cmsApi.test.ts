@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest'
+import { mapBackendBannerToBanner } from './cmsApi'
+
+describe('mapBackendBannerToBanner', () => {
+  it('correctly transforms raw GET /banners/all backend object into Banner model', () => {
+    const raw = {
+      _id: '6a7d3c561bdc423450bb92d0',
+      name: 'test test',
+      description: 'b',
+      image: '/uploads/image/frame-2147226136-1786592342239.png',
+      status: 'active',
+      isDeleted: false,
+      createdAt: '2026-08-13T03:39:02.245Z',
+      updatedAt: '2026-08-13T03:39:02.245Z',
+    }
+
+    const mapped = mapBackendBannerToBanner(raw)
+
+    expect(mapped.id).toBe('6a7d3c561bdc423450bb92d0')
+    expect(mapped.name).toBe('test test')
+    expect(mapped.title).toBe('test test')
+    expect(mapped.description).toBe('b')
+    expect(mapped.image).toBe('/uploads/image/frame-2147226136-1786592342239.png')
+    expect(mapped.imageUrl).toBe('/uploads/image/frame-2147226136-1786592342239.png')
+    expect(mapped.status).toBe('active')
+    expect(mapped.isActive).toBe(true)
+    expect(mapped.isDeleted).toBe(false)
+  })
+})
