@@ -20,30 +20,34 @@ import {
   type PlanInput,
 } from '@/services/endpoints/billingApi'
 import { formatCurrency, cn } from '@/lib/utils'
-import type { BillingInterval, Plan, StoreType } from '@/types/models'
+import type { Plan } from '@/types/models'
 import type { Option } from '@/types/common.types'
 
-const APPLIES_OPTIONS: Option[] = [
-  { label: 'Product & Service stores', value: 'both' },
-  { label: 'Product stores only', value: 'product' },
-  { label: 'Service stores only', value: 'service' },
+const DURATION_OPTIONS: Option[] = [
+  { label: '7 Days (seven_days)', value: 'seven_days' },
+  { label: '1 Month (one_month)', value: 'one_month' },
+  { label: '3 Months (three_month)', value: 'three_month' },
+  { label: '6 Months (six_month)', value: 'six_month' },
+  { label: '1 Year (one_year)', value: 'one_year' },
 ]
 
-const INTERVAL_OPTIONS: Option<BillingInterval>[] = [
-  { label: 'Monthly', value: 'monthly' },
-  { label: 'Yearly', value: 'yearly' },
+const PACKAGE_TYPE_OPTIONS: Option[] = [
+  { label: 'Store Creation (store_creation)', value: 'store_creation' },
+  { label: 'Post Add (post_add)', value: 'post_add' },
 ]
 
-const emptyPlan: PlanInput = {
+const emptyPackage: PlanInput = {
   name: '',
-  price: 0,
-  currency: 'USD',
-  interval: 'monthly',
-  appliesTo: ['product', 'service'],
-  listingLimit: 10,
+  price: 29.99,
+  duration: 'seven_days',
+  packageType: 'store_creation',
+  listingLimit: 100,
+  isUnlimitedListings: false,
+  trialEnabled: false,
+  trialPeriodDays: 30,
   features: [],
+  status: 'active',
   isActive: true,
-  popular: false,
 }
 
 export default function PlansPage() {
@@ -58,11 +62,11 @@ export default function PlansPage() {
   return (
     <div>
       <PageHeader
-        title="Subscription Plans"
-        description="Plans sellers subscribe to in order to open a store."
+        title="Subscription Packages"
+        description="Manage seller subscription packages, listing limits, trial periods, and pricing tiers."
         actions={
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> New plan
+            <Plus className="h-4 w-4" /> New package
           </Button>
         }
       />
@@ -72,10 +76,16 @@ export default function PlansPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {plans.map((plan) => (
-            <PlanCard
+            <PackageCard
               key={plan.id}
               plan={plan}
-              onToggle={(isActive) => togglePlan({ id: plan.id, isActive })}
+              onToggle={(isActive) =>
+                togglePlan({
+                  id: plan.id,
+                  isActive,
+                  status: isActive ? 'active' : 'inactive',
+                })
+              }
               onEdit={() => setEditing(plan)}
               onDelete={() => setToDelete(plan)}
             />
@@ -83,7 +93,7 @@ export default function PlansPage() {
         </div>
       )}
 
-      <PlanFormModal
+      <PackageFormModal
         open={creating || Boolean(editing)}
         plan={editing}
         onClose={() => {
@@ -94,9 +104,9 @@ export default function PlansPage() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title={`Delete “${toDelete?.name}” plan?`}
-        description="Stores already on this plan keep their subscription, but no new stores can choose it."
-        confirmLabel="Delete plan"
+        title={`Delete “${toDelete?.name}” package?`}
+        description="Stores currently on this subscription package keep their access, but no new sellers can select it."
+        confirmLabel="Delete package"
         tone="danger"
         loading={deleting}
         onConfirm={async () => {
@@ -109,7 +119,7 @@ export default function PlansPage() {
   )
 }
 
-function PlanCard({
+function PackageCard({
   plan,
   onToggle,
   onEdit,
@@ -120,6 +130,19 @@ function PlanCard({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const isActive = plan.status === 'active' || plan.isActive
+
+  const durationLabels: Record<string, string> = {
+    seven_days: '7 Days',
+    one_month: '1 Month',
+    three_month: '3 Months',
+    six_month: '6 Months',
+    one_year: '1 Year',
+  }
+
+  const durationText =
+    durationLabels[plan.duration || ''] || plan.interval || plan.duration || 'period'
+
   return (
     <Card className={cn('relative', plan.popular && 'ring-2 ring-brand-600')}>
       {plan.popular && (
@@ -132,27 +155,32 @@ function PlanCard({
           <div>
             <h3 className="text-lg font-semibold text-ink-900">{plan.name}</h3>
             <div className="mt-1 flex items-baseline gap-1">
-              <span className="text-3xl font-semibold text-ink-900">{formatCurrency(plan.price)}</span>
-              <span className="text-sm text-ink-500">/{plan.interval === 'monthly' ? 'mo' : 'yr'}</span>
+              <span className="text-3xl font-semibold text-ink-900">
+                {formatCurrency(plan.price)}
+              </span>
+              <span className="text-sm text-ink-500">/{durationText}</span>
             </div>
           </div>
-          <Switch checked={plan.isActive} onChange={onToggle} label={`Toggle ${plan.name}`} />
+          <Switch checked={isActive} onChange={onToggle} label={`Toggle ${plan.name}`} />
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {plan.appliesTo.map((t) => (
-            <Badge key={t} tone={t === 'product' ? 'blue' : 'purple'}>
-              {t}
-            </Badge>
-          ))}
-          <Badge tone="gray">
-            {plan.listingLimit === null ? 'Unlimited listings' : `${plan.listingLimit} listings`}
+          <Badge tone={plan.packageType === 'store_creation' ? 'purple' : 'blue'}>
+            {plan.packageType === 'store_creation' ? 'Store Creation' : 'Post Add'}
           </Badge>
+          <Badge tone="gray">
+            {plan.isUnlimitedListings || plan.listingLimit === null
+              ? 'Unlimited listings'
+              : `${plan.listingLimit} listings`}
+          </Badge>
+          {plan.trialEnabled && (
+            <Badge tone="amber">{plan.trialPeriodDays ?? 0} Days Trial</Badge>
+          )}
         </div>
 
         <ul className="mt-4 space-y-2 border-t border-ink-100 pt-4">
-          {plan.features.map((feature) => (
-            <li key={feature} className="flex items-start gap-2 text-sm text-ink-700">
+          {plan.features.map((feature, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm text-ink-700">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
               {feature}
             </li>
@@ -160,14 +188,21 @@ function PlanCard({
         </ul>
 
         <div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-4">
-          <span className={cn('text-xs font-medium', plan.isActive ? 'text-brand-600' : 'text-ink-400')}>
-            {plan.isActive ? '● Available to sellers' : '○ Hidden from sellers'}
+          <span
+            className={cn('text-xs font-medium', isActive ? 'text-brand-600' : 'text-ink-400')}
+          >
+            {isActive ? '● Active' : '○ Inactive'}
           </span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={onEdit}>
               <Pencil className="h-3.5 w-3.5" /> Edit
             </Button>
-            <Button size="sm" variant="ghost" onClick={onDelete} className="text-red-600 hover:bg-red-50">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onDelete}
+              className="text-red-600 hover:bg-red-50"
+            >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -177,42 +212,71 @@ function PlanCard({
   )
 }
 
-function PlanFormModal({ open, plan, onClose }: { open: boolean; plan: Plan | null; onClose: () => void }) {
+function PackageFormModal({
+  open,
+  plan,
+  onClose,
+}: {
+  open: boolean
+  plan: Plan | null
+  onClose: () => void
+}) {
   const [createPlan, { isLoading: creating }] = useCreatePlanMutation()
   const [updatePlan, { isLoading: updating }] = useUpdatePlanMutation()
 
-  const [form, setForm] = useState<PlanInput>(emptyPlan)
+  const [form, setForm] = useState<PlanInput>(emptyPackage)
   const [unlimited, setUnlimited] = useState(false)
   const [featuresText, setFeaturesText] = useState('')
 
   useEffect(() => {
     if (!open) return
-    const base = plan ?? emptyPlan
-    setForm({ ...base })
-    setUnlimited(base.listingLimit === null)
-    setFeaturesText(base.features.join('\n'))
+    if (plan) {
+      setForm({
+        name: plan.name || '',
+        price: plan.price ?? 0,
+        duration: plan.duration || 'seven_days',
+        packageType: plan.packageType || 'store_creation',
+        listingLimit: plan.listingLimit ?? 100,
+        isUnlimitedListings: Boolean(plan.isUnlimitedListings || plan.listingLimit === null),
+        trialEnabled: Boolean(plan.trialEnabled),
+        trialPeriodDays: plan.trialPeriodDays ?? 30,
+        features: plan.features || [],
+        status: plan.status || (plan.isActive ? 'active' : 'inactive'),
+        isActive: plan.status === 'active' || plan.isActive,
+      })
+      setUnlimited(Boolean(plan.isUnlimitedListings || plan.listingLimit === null))
+      setFeaturesText((plan.features || []).join('\n'))
+    } else {
+      setForm(emptyPackage)
+      setUnlimited(false)
+      setFeaturesText('')
+    }
   }, [open, plan])
-
-  const appliesValue =
-    form.appliesTo.length === 2 ? 'both' : form.appliesTo[0] ?? 'both'
-
-  const setApplies = (value: string) => {
-    const next: StoreType[] = value === 'both' ? ['product', 'service'] : [value as StoreType]
-    setForm((f) => ({ ...f, appliesTo: next }))
-  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const payload: PlanInput = {
-      ...form,
-      listingLimit: unlimited ? null : Number(form.listingLimit ?? 0),
+      name: form.name,
+      price: Number(form.price),
+      duration: form.duration || 'seven_days',
+      packageType: form.packageType || 'store_creation',
+      listingLimit: unlimited ? 0 : Number(form.listingLimit ?? 0),
+      isUnlimitedListings: unlimited,
+      trialEnabled: Boolean(form.trialEnabled),
+      trialPeriodDays: form.trialEnabled ? Number(form.trialPeriodDays ?? 0) : 0,
       features: featuresText
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean),
+      status: form.isActive ? 'active' : 'inactive',
+      isActive: Boolean(form.isActive),
     }
-    if (plan) await updatePlan({ id: plan.id, ...payload }).unwrap()
-    else await createPlan(payload).unwrap()
+
+    if (plan) {
+      await updatePlan({ id: plan.id, ...payload }).unwrap()
+    } else {
+      await createPlan(payload).unwrap()
+    }
     onClose()
   }
 
@@ -220,30 +284,32 @@ function PlanFormModal({ open, plan, onClose }: { open: boolean; plan: Plan | nu
     <Modal
       open={open}
       onClose={onClose}
-      title={plan ? `Edit · ${plan.name}` : 'New subscription plan'}
+      title={plan ? `Edit Package · ${plan.name}` : 'New Subscription Package'}
       size="lg"
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={creating || updating}>
             Cancel
           </Button>
-          <Button type="submit" form="plan-form" loading={creating || updating}>
-            {plan ? 'Save changes' : 'Create plan'}
+          <Button type="submit" form="package-form" loading={creating || updating}>
+            {plan ? 'Save Changes' : 'Create Package'}
           </Button>
         </>
       }
     >
-      <form id="plan-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="package-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
-            label="Plan name"
+            label="Package Name"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="e.g. Store Creation Premium"
             required
           />
           <Input
-            label="Price (USD)"
+            label="Price ($)"
             type="number"
+            step="0.01"
             min={0}
             value={form.price}
             onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
@@ -253,46 +319,73 @@ function PlanFormModal({ open, plan, onClose }: { open: boolean; plan: Plan | nu
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select
-            label="Billing interval"
-            options={INTERVAL_OPTIONS}
-            value={form.interval}
-            onChange={(e) => setForm((f) => ({ ...f, interval: e.target.value as BillingInterval }))}
+            label="Duration"
+            options={DURATION_OPTIONS}
+            value={form.duration}
+            onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
           />
-          <Select label="Applies to" options={APPLIES_OPTIONS} value={appliesValue} onChange={(e) => setApplies(e.target.value)} />
+          <Select
+            label="Package Type"
+            options={PACKAGE_TYPE_OPTIONS}
+            value={form.packageType}
+            onChange={(e) => setForm((f) => ({ ...f, packageType: e.target.value }))}
+          />
         </div>
 
-        <div className="flex items-end gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 items-end">
           <Input
-            label="Listing limit"
+            label="Listing Limit"
             type="number"
-            min={1}
+            min={0}
             disabled={unlimited}
             value={unlimited ? '' : (form.listingLimit ?? 0)}
             onChange={(e) => setForm((f) => ({ ...f, listingLimit: Number(e.target.value) }))}
-            className="max-w-[180px]"
           />
-          <label className="mb-2.5 flex items-center gap-2 text-sm text-ink-700">
-            <Switch checked={unlimited} onChange={setUnlimited} label="Unlimited listings" />
-            Unlimited
-          </label>
+          <div className="mb-2.5 flex items-center gap-2">
+            <Switch checked={unlimited} onChange={setUnlimited} label="Unlimited Listings" />
+            <span className="text-sm font-medium text-ink-700">Unlimited Listings</span>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-ink-100 bg-ink-50 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-ink-900">Trial Period Settings</span>
+            <Switch
+              checked={Boolean(form.trialEnabled)}
+              onChange={(val) => setForm((f) => ({ ...f, trialEnabled: val }))}
+              label="Enable Trial"
+            />
+          </div>
+          {form.trialEnabled && (
+            <Input
+              label="Trial Period (Days)"
+              type="number"
+              min={1}
+              value={form.trialPeriodDays ?? 30}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, trialPeriodDays: Number(e.target.value) }))
+              }
+              placeholder="30"
+            />
+          )}
         </div>
 
         <Textarea
           label="Features (one per line)"
           value={featuresText}
           onChange={(e) => setFeaturesText(e.target.value)}
-          rows={5}
-          placeholder={'Up to 50 listings\nFeatured in Explore\nPriority support'}
+          rows={4}
+          placeholder={'Create store\nUp to 100 listings\nPremium store visibility\nPriority support'}
         />
 
-        <div className="flex items-center gap-6">
-          <label className="flex items-center gap-2 text-sm text-ink-700">
-            <Switch checked={form.isActive} onChange={(v) => setForm((f) => ({ ...f, isActive: v }))} label="Active" />
-            Available to sellers
-          </label>
-          <label className="flex items-center gap-2 text-sm text-ink-700">
-            <Switch checked={Boolean(form.popular)} onChange={(v) => setForm((f) => ({ ...f, popular: v }))} label="Popular" />
-            Mark as popular
+        <div className="flex items-center justify-between border-t border-ink-100 pt-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+            <Switch
+              checked={Boolean(form.isActive)}
+              onChange={(v) => setForm((f) => ({ ...f, isActive: v, status: v ? 'active' : 'inactive' }))}
+              label="Active Status"
+            />
+            Package Active Status ({form.isActive ? 'Active' : 'Inactive'})
           </label>
         </div>
       </form>

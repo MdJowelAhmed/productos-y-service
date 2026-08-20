@@ -106,17 +106,28 @@ export type BillingInterval = 'monthly' | 'yearly' | string
 
 export interface Plan {
   id: ID
+  _id?: ID
   name: string
   price: number
   currency: string
   interval: BillingInterval
+  duration?: string
+  status?: string
+  packageType?: string
   /** Which store types may subscribe to this plan. */
   appliesTo: StoreType[]
   /** Max listings allowed under the plan (null = unlimited). */
   listingLimit: number | null
+  isUnlimitedListings?: boolean
+  trialEnabled?: boolean
+  trialPeriodDays?: number
+  stripeProductId?: string
+  stripePriceId?: string
   features: string[]
   isActive: boolean
   popular?: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
 }
 
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired'

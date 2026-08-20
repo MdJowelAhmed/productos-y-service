@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapBackendSubscriptionToSubscription } from './billingApi'
+import { mapBackendSubscriptionToSubscription, mapBackendPackageToPlan } from './billingApi'
 
 describe('mapBackendSubscriptionToSubscription', () => {
   it('correctly transforms real GET /subscriptions raw backend object into Subscription model', () => {
@@ -97,5 +97,46 @@ describe('mapBackendSubscriptionToSubscription', () => {
     expect(mapped.packageId?.name).toBe('Store Creation Premium')
     expect(mapped.userId?.email).toBe('studentemam@gmail.com')
     expect(mapped.store?.city).toBe('Dhaka')
+  })
+
+  it('correctly transforms real GET /subscription-packages raw backend object into Plan model', () => {
+    const rawPackage = {
+      _id: '6a7ff377c24d0046a564c737',
+      name: 'Store Creation Premium',
+      price: 29.99,
+      duration: 'seven_days',
+      status: 'active',
+      packageType: 'store_creation',
+      listingLimit: 100,
+      isUnlimitedListings: false,
+      trialEnabled: false,
+      trialPeriodDays: 30,
+      stripeProductId: 'prod_V4jEjOFa0PYwSt',
+      stripePriceId: 'price_1U4Zm7QOpYWE7pDH9QPOxfVS',
+      features: [
+        'Create store',
+        'Up to 100 listings',
+        'Premium store visibility',
+        'Priority support',
+      ],
+      isDeleted: false,
+      createdAt: '2026-08-15T05:04:55.107Z',
+      updatedAt: '2026-08-15T05:04:55.107Z',
+    }
+
+    const mapped = mapBackendPackageToPlan(rawPackage)
+
+    expect(mapped.id).toBe('6a7ff377c24d0046a564c737')
+    expect(mapped.name).toBe('Store Creation Premium')
+    expect(mapped.price).toBe(29.99)
+    expect(mapped.duration).toBe('seven_days')
+    expect(mapped.status).toBe('active')
+    expect(mapped.packageType).toBe('store_creation')
+    expect(mapped.listingLimit).toBe(100)
+    expect(mapped.isUnlimitedListings).toBe(false)
+    expect(mapped.trialEnabled).toBe(false)
+    expect(mapped.trialPeriodDays).toBe(30)
+    expect(mapped.features).toHaveLength(4)
+    expect(mapped.isActive).toBe(true)
   })
 })
