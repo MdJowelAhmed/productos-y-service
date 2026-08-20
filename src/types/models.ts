@@ -102,7 +102,7 @@ export interface Service {
   createdAt: ISODate
 }
 
-export type BillingInterval = 'monthly' | 'yearly'
+export type BillingInterval = 'monthly' | 'yearly' | string
 
 export interface Plan {
   id: ID
@@ -121,22 +121,96 @@ export interface Plan {
 
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired'
 
+export interface SubscriptionPackage {
+  _id: ID
+  name: string
+  price: number
+  duration: string
+  status?: string
+  packageType?: string
+  listingLimit?: number
+  isUnlimitedListings?: boolean
+  trialEnabled?: boolean
+  trialPeriodDays?: number
+  stripeProductId?: string
+  stripePriceId?: string
+  features?: string[]
+  isDeleted?: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
+}
+
+export interface SubscriptionUser {
+  _id: ID
+  name: string
+  email: string
+  profileImage?: string
+  phone?: string
+}
+
+export interface SubscriptionStore {
+  _id: ID
+  owner?: string
+  storeType?: string
+  displayName?: string
+  description?: string
+  categoryId?: {
+    _id: string
+    name: string
+  } | string
+  logo?: string
+  coverImage?: string
+  phone?: string
+  whatsapp?: string
+  email?: string
+  streetAddress?: string
+  city?: string
+  postalCode?: string
+  latitude?: number
+  longitude?: number
+  businessLicenseNumber?: string
+  tradeLicense?: string
+  tinNumber?: string
+  status?: string
+  isDeleted?: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
+  documentBack?: string
+  documentFront?: string
+  documentType?: string
+  isVerified?: boolean
+  averageRating?: number
+  ratingCount?: number
+  visitorCount?: number
+}
+
 export interface Subscription {
   id: ID
+  _id?: ID
   storeId: ID
   storeName: string
-  /** The seller (user) who owns the subscribed store. */
   ownerName: string
   storeType: StoreType
   planId: ID
   planName: string
   amount: number
+  amountPaid?: number
   currency: string
   interval: BillingInterval
-  status: SubscriptionStatus
+  status: SubscriptionStatus | string
   currentPeriodStart: ISODate
   currentPeriodEnd: ISODate
+  expiresAt?: ISODate
   createdAt: ISODate
+  updatedAt?: ISODate
+  stripeSubscriptionId?: string
+  stripeSessionId?: string
+  trxId?: string
+  packageType?: string
+  isDeleted?: boolean
+  packageId?: SubscriptionPackage
+  userId?: SubscriptionUser
+  store?: SubscriptionStore
 }
 
 export interface Category {

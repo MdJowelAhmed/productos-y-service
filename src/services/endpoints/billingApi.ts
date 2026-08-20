@@ -9,6 +9,63 @@ import type { Plan, Subscription, Transaction } from '@/types/models'
 
 export type PlanInput = Omit<Plan, 'id'>
 
+export function mapBackendSubscriptionToSubscription(raw: any): Subscription {
+  if (!raw) return raw
+  const id = String(raw._id || raw.id || '')
+
+  const pkg = typeof raw.packageId === 'object' ? raw.packageId : null
+  const usr = typeof raw.userId === 'object' ? raw.userId : null
+  const str = typeof raw.store === 'object' ? raw.store : null
+
+  const storeId = str?._id || raw.storeId || ''
+  const storeName = str?.displayName || str?.name || raw.storeName || 'N/A'
+
+  const rawStoreType = str?.storeType || raw.storeType || 'product'
+  const storeType =
+    rawStoreType === 'product_store' || rawStoreType === 'product' ? 'product' : 'service'
+
+  const planId = pkg?._id || (typeof raw.packageId === 'string' ? raw.packageId : raw.planId) || ''
+  const planName = pkg?.name || raw.planName || 'N/A'
+
+  const amount = typeof raw.amountPaid === 'number' ? raw.amountPaid : (pkg?.price ?? raw.amount ?? 0)
+
+  const rawDuration = pkg?.duration || raw.interval || 'monthly'
+  const interval = rawDuration === 'seven_days' ? '7 days' : rawDuration
+
+  const ownerName = usr?.name || raw.ownerName || 'N/A'
+  const expiresAt = raw.expiresAt || raw.currentPeriodEnd || raw.createdAt || new Date().toISOString()
+  const createdAt = raw.createdAt || new Date().toISOString()
+
+  return {
+    id,
+    _id: raw._id || id,
+    storeId,
+    storeName,
+    ownerName,
+    storeType,
+    planId,
+    planName,
+    amount,
+    amountPaid: raw.amountPaid,
+    currency: raw.currency || 'USD',
+    interval,
+    status: raw.status || 'active',
+    currentPeriodStart: raw.createdAt || raw.currentPeriodStart || createdAt,
+    currentPeriodEnd: expiresAt,
+    expiresAt: raw.expiresAt,
+    createdAt,
+    updatedAt: raw.updatedAt,
+    stripeSubscriptionId: raw.stripeSubscriptionId,
+    stripeSessionId: raw.stripeSessionId,
+    trxId: raw.trxId,
+    packageType: raw.packageType,
+    isDeleted: raw.isDeleted,
+    packageId: pkg || undefined,
+    userId: usr || undefined,
+    store: str || undefined,
+  }
+}
+
 /** Subscriptions + plans (billing domain). */
 export const billingApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -22,7 +79,37 @@ export const billingApi = api.injectEndpoints({
             filters: { status: (s, v) => s.status === v },
           })
         },
-        real: (params) => ({ url: '/subscriptions', params }),
+        real: (params) => {
+          const queryParams: Record<string, any> = {}
+          if (params?.page) queryParams.page = params.page
+          if (params?.pageSize) queryParams.limit = params.pageSize
+          if (params?.search && params.search.trim()) queryParams.search = params.search.trim()
+          if (params?.status && params.status !== 'all') queryParams.status = params.status
+          if (params?.plan && params.plan !== 'all') queryParams.packageId = params.plan
+          return {
+            url: '/subscriptions',
+            method: 'GET',
+            params: queryParams,
+          }
+        },
+        transformReal: (response: any): Paginated<Subscription> => {
+          let rawData = response?.data
+          if (rawData && !Array.isArray(rawData) && Array.isArray(rawData.data)) {
+            rawData = rawData.data
+          }
+          const dataList = Array.isArray(rawData)
+            ? rawData
+            : Array.isArray(response)
+            ? response
+            : []
+          const meta = response?.meta || response?.data?.meta || {}
+          return {
+            items: dataList.map(mapBackendSubscriptionToSubscription),
+            total: meta.total ?? dataList.length,
+            page: meta.page ?? 1,
+            pageSize: meta.limit ?? meta.pageSize ?? 10,
+          }
+        },
       }),
       providesTags: ['Subscription'],
     }),
