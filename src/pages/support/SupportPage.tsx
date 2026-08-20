@@ -8,6 +8,7 @@ import { Avatar } from '@/components/shared/Avatar'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAuth } from '@/hooks/useAuth'
+import { useSocketEvents } from '@/hooks/useSocketEvents'
 import { imageUrl } from '@/components/shared/getImageUrl'
 import {
   useGetChatsQuery,
@@ -22,6 +23,8 @@ import type { Chat, ChatParticipant, ChatMessage } from '@/types/models'
 export default function SupportPage() {
   const [search, setSearch] = useState('')
   const [activeId, setActiveId] = useState<string | null>(null)
+
+  useSocketEvents(activeId)
 
   const debouncedSearch = useDebounce(search)
   const { data: chatsList, isLoading } = useGetChatsQuery()
@@ -227,15 +230,18 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
           messages?.map((m: ChatMessage) => {
             const senderObj = typeof m.sender === 'object' ? (m.sender as ChatParticipant) : null
             const senderId = senderObj ? String(senderObj._id || '') : String(m.sender || '')
-            const senderRole = senderObj?.role || ''
+            const senderRole = senderObj?.role || senderObj?.activeRole || ''
+            const senderNameStr = senderObj?.name || ''
 
             const isAgent =
+              senderId === 'me' ||
+              m.sender === 'me' ||
+              m.sender === 'agent' ||
               (user?.id && senderId === String(user.id)) ||
               (user?.email && senderObj?.email === user.email) ||
               senderRole === 'super_admin' ||
               senderRole === 'admin' ||
-              m.sender === 'agent' ||
-              m.sender === 'me'
+              senderNameStr.toLowerCase().includes('admin')
 
             const senderName = isAgent ? 'You' : (senderObj?.name || customerName)
             const imgPath = m.image ? imageUrl(m.image) : ''

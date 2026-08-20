@@ -76,11 +76,17 @@ export const supportApi = api.injectEndpoints({
       },
       transformResponse: (response: any): ChatMessage => {
         const raw = response?.data || response
+        const senderPayload = raw.sender
+        const sender =
+          typeof senderPayload === 'string'
+            ? { _id: senderPayload, name: 'Super Admin', role: 'super_admin' }
+            : senderPayload || { _id: 'me', name: 'Super Admin', role: 'super_admin' }
+
         return {
           id: String(raw._id || raw.id || ''),
           _id: raw._id || raw.id,
           chatId: String(raw.chatId || ''),
-          sender: raw.sender || '',
+          sender,
           text: raw.text || '',
           image: raw.image || '',
           read: Boolean(raw.read),
@@ -101,6 +107,7 @@ export const supportApi = api.injectEndpoints({
               sender: {
                 _id: 'me',
                 name: 'Super Admin',
+                role: 'super_admin',
               },
               text,
               image: previewUrl,
@@ -109,7 +116,15 @@ export const supportApi = api.injectEndpoints({
           }),
         )
         try {
-          await queryFulfilled
+          const { data: realMsg } = await queryFulfilled
+          dispatch(
+            supportApi.util.updateQueryData('getMessages', chatId, (draft) => {
+              const idx = draft.findIndex((m) => String(m.id || m._id) === tempId)
+              if (idx !== -1) {
+                draft[idx] = realMsg
+              }
+            }),
+          )
         } catch {
           patch.undo()
         }
