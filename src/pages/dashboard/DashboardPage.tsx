@@ -26,7 +26,7 @@ export default function DashboardPage() {
 
   const recentColumns: Column<Subscription>[] = [
     { key: 'store', header: 'Store', render: (s) => <span className="font-medium text-ink-900">{s.storeName}</span> },
-    { key: 'type', header: 'Type', render: (s) => <StoreTypeBadge type={s.storeType} /> },
+    { key: 'type', header: 'Type', render: (s) => <StoreTypeBadge type={s.storeType || 'product'} /> },
     { key: 'plan', header: 'Plan', render: (s) => s.planName },
     { key: 'amount', header: 'Amount', align: 'right', render: (s) => formatCurrency(s.amount) },
     { key: 'status', header: 'Status', render: (s) => <SubscriptionStatusBadge status={s.status} /> },

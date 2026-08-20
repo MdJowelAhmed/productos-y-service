@@ -108,14 +108,16 @@ export interface Plan {
   id: ID
   _id?: ID
   name: string
+  description?: string
   price: number
   currency: string
-  interval: BillingInterval
+  interval?: BillingInterval
+  billingCycle?: BillingInterval
   duration?: string
   status?: string
   packageType?: string
   /** Which store types may subscribe to this plan. */
-  appliesTo: StoreType[]
+  appliesTo?: StoreType[]
   /** Max listings allowed under the plan (null = unlimited). */
   listingLimit: number | null
   isUnlimitedListings?: boolean
@@ -161,6 +163,7 @@ export interface SubscriptionUser {
 
 export interface SubscriptionStore {
   _id: ID
+  name?: string
   owner?: string
   storeType?: string
   displayName?: string
@@ -198,30 +201,34 @@ export interface SubscriptionStore {
 export interface Subscription {
   id: ID
   _id?: ID
-  storeId: ID
-  storeName: string
-  ownerName: string
-  storeType: StoreType
-  planId: ID
-  planName: string
+  storeId?: ID
+  storeName?: string
+  ownerName?: string
+  ownerEmail?: string
+  storeType?: StoreType
+  planId?: ID
+  planName?: string
   amount: number
   amountPaid?: number
   currency: string
-  interval: BillingInterval
+  interval?: BillingInterval
+  billingCycle?: BillingInterval
   status: SubscriptionStatus | string
-  currentPeriodStart: ISODate
-  currentPeriodEnd: ISODate
+  currentPeriodStart?: ISODate
+  currentPeriodEnd?: ISODate
+  startDate?: ISODate
   expiresAt?: ISODate
-  createdAt: ISODate
+  createdAt?: ISODate
   updatedAt?: ISODate
   stripeSubscriptionId?: string
   stripeSessionId?: string
   trxId?: string
   packageType?: string
-  isDeleted?: boolean
-  packageId?: SubscriptionPackage
+  user?: SubscriptionUser
   userId?: SubscriptionUser
   store?: SubscriptionStore
+  package?: SubscriptionPackage
+  packageId?: SubscriptionPackage
 }
 
 export interface Category {
@@ -319,12 +326,15 @@ export type AdminRole = 'super_admin' | 'admin' | 'moderator' | 'support'
 
 export interface Admin {
   id: ID
+  _id?: ID
   name: string
   email: string
-  role: AdminRole
-  status: 'active' | 'suspended'
-  lastActiveAt: ISODate
-  createdAt: ISODate
+  role: AdminRole | string
+  status: 'active' | 'suspended' | string
+  profileImage?: string
+  lastActiveAt?: ISODate
+  createdAt?: ISODate
+  updatedAt?: ISODate
 }
 
 /* ------------------------------ CMS ------------------------------- */
@@ -380,8 +390,8 @@ export type TransactionStatus = 'paid' | 'failed' | 'refunded' | 'pending'
 
 export interface Transaction {
   id: ID
-  storeName: string
-  planName: string
+  storeName?: string
+  planName?: string
   amount: number
   currency: string
   status: TransactionStatus

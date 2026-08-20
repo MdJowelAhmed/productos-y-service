@@ -302,7 +302,7 @@ function PackageFormModal({
           <Input
             label="Package Name"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => setForm((f: PlanInput) => ({ ...f, name: e.target.value }))}
             placeholder="e.g. Store Creation Premium"
             required
           />
@@ -312,7 +312,7 @@ function PackageFormModal({
             step="0.01"
             min={0}
             value={form.price}
-            onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))}
+            onChange={(e) => setForm((f: PlanInput) => ({ ...f, price: Number(e.target.value) }))}
             required
           />
         </div>
@@ -322,13 +322,13 @@ function PackageFormModal({
             label="Duration"
             options={DURATION_OPTIONS}
             value={form.duration}
-            onChange={(e) => setForm((f) => ({ ...f, duration: e.target.value }))}
+            onChange={(e) => setForm((f: PlanInput) => ({ ...f, duration: e.target.value }))}
           />
           <Select
             label="Package Type"
             options={PACKAGE_TYPE_OPTIONS}
             value={form.packageType}
-            onChange={(e) => setForm((f) => ({ ...f, packageType: e.target.value }))}
+            onChange={(e) => setForm((f: PlanInput) => ({ ...f, packageType: e.target.value }))}
           />
         </div>
 
@@ -339,7 +339,7 @@ function PackageFormModal({
             min={0}
             disabled={unlimited}
             value={unlimited ? '' : (form.listingLimit ?? 0)}
-            onChange={(e) => setForm((f) => ({ ...f, listingLimit: Number(e.target.value) }))}
+            onChange={(e) => setForm((f: PlanInput) => ({ ...f, listingLimit: Number(e.target.value) }))}
           />
           <div className="mb-2.5 flex items-center gap-2">
             <Switch checked={unlimited} onChange={setUnlimited} label="Unlimited Listings" />
@@ -352,7 +352,7 @@ function PackageFormModal({
             <span className="text-sm font-medium text-ink-900">Trial Period Settings</span>
             <Switch
               checked={Boolean(form.trialEnabled)}
-              onChange={(val) => setForm((f) => ({ ...f, trialEnabled: val }))}
+              onChange={(val) => setForm((f: PlanInput) => ({ ...f, trialEnabled: val }))}
               label="Enable Trial"
             />
           </div>
@@ -363,7 +363,7 @@ function PackageFormModal({
               min={1}
               value={form.trialPeriodDays ?? 30}
               onChange={(e) =>
-                setForm((f) => ({ ...f, trialPeriodDays: Number(e.target.value) }))
+                setForm((f: PlanInput) => ({ ...f, trialPeriodDays: Number(e.target.value) }))
               }
               placeholder="30"
             />
@@ -382,7 +382,7 @@ function PackageFormModal({
           <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
             <Switch
               checked={Boolean(form.isActive)}
-              onChange={(v) => setForm((f) => ({ ...f, isActive: v, status: v ? 'active' : 'inactive' }))}
+              onChange={(v) => setForm((f: PlanInput) => ({ ...f, isActive: v, status: v ? 'active' : 'inactive' }))}
               label="Active Status"
             />
             Package Active Status ({form.isActive ? 'Active' : 'Inactive'})

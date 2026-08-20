@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, XCircle, CreditCard, Store, CheckCircle2, ShieldCheck, Tag } from 'lucide-react'
+import { Eye, XCircle, Store, CheckCircle2, Tag } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Table, type Column } from '@/components/ui/Table'
@@ -39,8 +39,8 @@ export default function SubscriptionsPage() {
       key: 'store',
       header: 'Store (Subscriber)',
       render: (s) => {
-        const storeName = s.store?.displayName || s.storeName
-        const ownerName = s.userId?.name || s.ownerName
+        const storeName = s.store?.displayName || s.storeName || 'Store'
+        const ownerName = s.userId?.name || s.ownerName || 'Subscriber'
         const ownerEmail = s.userId?.email
         const avatarSrc = s.store?.logo || s.userId?.profileImage
 
@@ -60,7 +60,7 @@ export default function SubscriptionsPage() {
     {
       key: 'type',
       header: 'Store Type',
-      render: (s) => <StoreTypeBadge type={s.storeType} />,
+      render: (s) => <StoreTypeBadge type={s.storeType || 'product'} />,
     },
     {
       key: 'plan',
@@ -96,7 +96,7 @@ export default function SubscriptionsPage() {
       header: 'Expires At',
       render: (s) => (
         <span className="text-sm text-ink-700">
-          {formatDate(s.expiresAt || s.currentPeriodEnd)}
+          {s.expiresAt || s.currentPeriodEnd ? formatDate((s.expiresAt || s.currentPeriodEnd)!) : 'N/A'}
         </span>
       ),
     },
@@ -111,12 +111,7 @@ export default function SubscriptionsPage() {
       align: 'right',
       render: (s) => (
         <div className="flex items-center justify-end gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setSelectedSub(s)}
-            title="View Details"
-          >
+          <Button size="sm" variant="outline" onClick={() => setSelectedSub(s)}>
             <Eye className="h-3.5 w-3.5" /> Details
           </Button>
           {(s.status === 'active' || s.status === 'trialing') && (
@@ -190,7 +185,7 @@ export default function SubscriptionsPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg bg-ink-50 p-4 border border-ink-100">
               <div className="flex items-center gap-3">
                 <Avatar
-                  name={selectedSub.userId?.name || selectedSub.ownerName}
+                  name={selectedSub.userId?.name || selectedSub.ownerName || 'Subscriber'}
                   src={selectedSub.userId?.profileImage || selectedSub.store?.logo}
                   size="lg"
                 />
@@ -218,7 +213,7 @@ export default function SubscriptionsPage() {
                 <span className="flex items-center gap-2 font-medium text-ink-900 text-sm">
                   <Store className="h-4 w-4 text-ink-500" /> Associated Store
                 </span>
-                <StoreTypeBadge type={selectedSub.storeType} />
+                <StoreTypeBadge type={selectedSub.storeType || 'product'} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
@@ -231,32 +226,8 @@ export default function SubscriptionsPage() {
                   <div>
                     <span className="text-ink-400">City / Location:</span>{' '}
                     <span className="font-medium text-ink-900">
-                      {selectedSub.store.city} {selectedSub.store.streetAddress ? `(${selectedSub.store.streetAddress})` : ''}
+                      {selectedSub.store.city}
                     </span>
-                  </div>
-                )}
-                {selectedSub.store?.email && (
-                  <div>
-                    <span className="text-ink-400">Store Email:</span>{' '}
-                    <span className="font-medium text-ink-900">{selectedSub.store.email}</span>
-                  </div>
-                )}
-                {selectedSub.store?.phone && (
-                  <div>
-                    <span className="text-ink-400">Store Phone:</span>{' '}
-                    <span className="font-medium text-ink-900">{selectedSub.store.phone}</span>
-                  </div>
-                )}
-                {selectedSub.store?.isVerified !== undefined && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-ink-400">Verification:</span>{' '}
-                    {selectedSub.store.isVerified ? (
-                      <span className="text-emerald-600 font-medium flex items-center gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5" /> Verified
-                      </span>
-                    ) : (
-                      <span className="text-ink-500 font-medium">Unverified</span>
-                    )}
                   </div>
                 )}
               </div>
@@ -302,13 +273,15 @@ export default function SubscriptionsPage() {
                 <div>
                   <span className="text-ink-400">Created At:</span>{' '}
                   <span className="font-medium text-ink-900">
-                    {formatDate(selectedSub.createdAt)}
+                    {selectedSub.createdAt ? formatDate(selectedSub.createdAt) : 'N/A'}
                   </span>
                 </div>
                 <div>
                   <span className="text-ink-400">Expires At:</span>{' '}
                   <span className="font-medium text-ink-900">
-                    {formatDate(selectedSub.expiresAt || selectedSub.currentPeriodEnd)}
+                    {selectedSub.expiresAt || selectedSub.currentPeriodEnd
+                      ? formatDate((selectedSub.expiresAt || selectedSub.currentPeriodEnd)!)
+                      : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -317,7 +290,7 @@ export default function SubscriptionsPage() {
                 <div className="pt-2 border-t border-ink-100">
                   <span className="text-xs text-ink-400 block mb-1.5">Package Features:</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {selectedSub.packageId.features.map((feat, idx) => (
+                    {selectedSub.packageId.features.map((feat: string, idx: number) => (
                       <span
                         key={idx}
                         className="inline-flex items-center gap-1 rounded bg-ink-50 px-2 py-0.5 text-[11px] text-ink-700 border border-ink-100"
@@ -330,39 +303,6 @@ export default function SubscriptionsPage() {
                 </div>
               )}
             </div>
-
-            {/* Payment & Stripe Identifiers */}
-            {(selectedSub.stripeSubscriptionId || selectedSub.stripeSessionId || selectedSub.trxId) && (
-              <div className="rounded-lg border border-ink-100 p-4 space-y-2 text-xs bg-ink-50/50">
-                <div className="font-medium text-ink-900 text-xs mb-1 flex items-center gap-1.5">
-                  <CreditCard className="h-3.5 w-3.5 text-ink-500" /> Stripe / Payment Identifiers
-                </div>
-                {selectedSub.stripeSubscriptionId && (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-ink-400">Stripe Subscription ID:</span>
-                    <code className="bg-white px-1.5 py-0.5 rounded border border-ink-200 text-ink-800 font-mono text-[11px]">
-                      {selectedSub.stripeSubscriptionId}
-                    </code>
-                  </div>
-                )}
-                {selectedSub.stripeSessionId && (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-ink-400">Stripe Session ID:</span>
-                    <code className="bg-white px-1.5 py-0.5 rounded border border-ink-200 text-ink-800 font-mono text-[11px] truncate max-w-xs">
-                      {selectedSub.stripeSessionId}
-                    </code>
-                  </div>
-                )}
-                {selectedSub.trxId && (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-ink-400">Transaction ID:</span>
-                    <code className="bg-white px-1.5 py-0.5 rounded border border-ink-200 text-ink-800 font-mono text-[11px]">
-                      {selectedSub.trxId}
-                    </code>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </Modal>
       )}
