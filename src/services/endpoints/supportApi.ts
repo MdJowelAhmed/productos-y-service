@@ -247,10 +247,18 @@ export const supportApi = api.injectEndpoints({
       invalidatesTags: ['SupportTicket'],
     }),
 
+    markChatAsRead: builder.mutation<any, ID>({
+      query: (id) => ({
+        url: `/chats/mark-chat-as-read/${id}`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['SupportTicket'],
+    }),
+
     markSupportTicketRead: builder.mutation<any, ID>({
       query: (id) => ({
-        url: `/chats/${id}/read`,
-        method: 'POST',
+        url: `/chats/mark-chat-as-read/${id}`,
+        method: 'PATCH',
       }),
       invalidatesTags: ['SupportTicket'],
     }),
@@ -265,5 +273,6 @@ export const {
   useGetSupportThreadQuery,
   useSendSupportReplyMutation,
   useSetSupportTicketStatusMutation,
+  useMarkChatAsReadMutation,
   useMarkSupportTicketReadMutation,
 } = supportApi

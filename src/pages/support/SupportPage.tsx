@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Image as ImageIcon, LifeBuoy, Send, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -14,15 +15,17 @@ import {
   useGetChatsQuery,
   useGetMessagesQuery,
   useSendMessageMutation,
-  useMarkSupportTicketReadMutation,
+  useMarkChatAsReadMutation,
 } from '@/services/endpoints/supportApi'
 import { formatRelative, formatMessageTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Chat, ChatParticipant, ChatMessage } from '@/types/models'
 
 export default function SupportPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeId = searchParams.get('chatId') || null
   const [search, setSearch] = useState('')
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [markChatAsRead] = useMarkChatAsReadMutation()
 
   useSocketEvents(activeId)
 
@@ -39,6 +42,15 @@ export default function SupportPage() {
   })
 
   const activeChat = chats.find((c) => c.id === activeId || c._id === activeId) ?? null
+
+  const handleSelectChat = (id: string) => {
+    setSearchParams({ chatId: id }, { replace: true })
+    markChatAsRead(id)
+  }
+
+  const handleBack = () => {
+    setSearchParams({}, { replace: true })
+  }
 
   return (
     <div>
@@ -65,14 +77,17 @@ export default function SupportPage() {
             ) : filteredChats.length === 0 ? (
               <EmptyState icon={LifeBuoy} title="No conversations" description="You're all caught up." />
             ) : (
-              filteredChats.map((c) => (
-                <ChatRow
-                  key={c.id || c._id}
-                  chat={c}
-                  active={c.id === activeId || c._id === activeId}
-                  onClick={() => setActiveId(c.id || c._id)}
-                />
-              ))
+              filteredChats.map((c) => {
+                const targetId = c.id || c._id
+                return (
+                  <ChatRow
+                    key={targetId}
+                    chat={c}
+                    active={targetId === activeId}
+                    onClick={() => handleSelectChat(targetId)}
+                  />
+                )
+              })
             )}
           </div>
         </div>
@@ -80,7 +95,7 @@ export default function SupportPage() {
         {/* Conversation View */}
         <div className={cn('flex-1 flex-col', activeChat ? 'flex' : 'hidden lg:flex')}>
           {activeChat ? (
-            <Conversation chat={activeChat} onBack={() => setActiveId(null)} />
+            <Conversation chat={activeChat} onBack={handleBack} />
           ) : (
             <div className="flex flex-1 items-center justify-center p-8">
               <EmptyState
@@ -146,7 +161,7 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
 
   const { data: pageData, isFetching } = useGetMessagesQuery({ chatId, page, limit: 20 })
   const [sendMessageApi, { isLoading: sending }] = useSendMessageMutation()
-  const [markRead] = useMarkSupportTicketReadMutation()
+  const [markChatAsRead] = useMarkChatAsReadMutation()
 
   const [text, setText] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -174,9 +189,17 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   useEffect(() => {
     if (pageData?.messages) {
       setAccumulatedMessages((prev) => {
+        if (page === 1) {
+          return pageData.messages
+        }
         const map = new Map<string, ChatMessage>()
         pageData.messages.forEach((m) => map.set(String(m.id || m._id), m))
-        prev.forEach((m) => map.set(String(m.id || m._id), m))
+        prev.forEach((m) => {
+          const id = String(m.id || m._id)
+          if (!id.startsWith('optimistic_')) {
+            map.set(id, m)
+          }
+        })
 
         const merged = Array.from(map.values())
         return merged.sort(
@@ -184,7 +207,7 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
         )
       })
     }
-  }, [pageData])
+  }, [pageData, page])
 
   // Auto-scroll on initial load & preserve scroll position when loading older pages
   useEffect(() => {
@@ -202,12 +225,12 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
     }
   }, [accumulatedMessages])
 
-  // Mark chat as read
+  // Mark chat as read via PATCH /chats/mark-chat-as-read/:id
   useEffect(() => {
-    if (chat.unreadCount && chat.unreadCount > 0) {
-      markRead(chatId)
+    if (chatId) {
+      markChatAsRead(chatId)
     }
-  }, [chatId, chat.unreadCount, markRead])
+  }, [chatId, markChatAsRead])
 
   // Handle scroll-up to load older page messages
   const handleScroll = () => {
