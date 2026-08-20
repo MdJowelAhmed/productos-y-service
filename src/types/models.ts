@@ -419,10 +419,57 @@ export interface Announcement {
   createdAt: ISODate
 }
 
-/* -------------------------- Support ------------------------------- */
+/* -------------------------- Support & Chat ------------------------------- */
 
 export type SupportStatus = 'open' | 'pending' | 'resolved'
 export type SupportSender = 'customer' | 'agent'
+
+export interface ChatParticipant {
+  _id: string
+  name: string
+  role?: string
+  activeRole?: string
+  email?: string
+  profileImage?: string
+}
+
+export interface ChatLastMessage {
+  _id: string
+  chatId: string
+  sender: string | ChatParticipant
+  text: string
+  image?: string
+  read?: boolean
+  type?: string
+  createdAt?: ISODate
+  updatedAt?: ISODate
+}
+
+export interface Chat {
+  id: ID
+  _id: ID
+  participants: ChatParticipant[]
+  lastMessage?: ChatLastMessage | null
+  communicationType?: string
+  status?: string
+  createdAt?: ISODate
+  updatedAt?: ISODate
+  isRead?: boolean
+  unreadCount?: number
+}
+
+export interface ChatMessage {
+  id: ID
+  _id: ID
+  chatId: ID
+  sender: ChatParticipant | string
+  text: string
+  image?: string
+  read?: boolean
+  type?: string
+  createdAt: ISODate
+  updatedAt?: ISODate
+}
 
 export interface SupportMessage {
   id: ID

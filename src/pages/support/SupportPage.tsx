@@ -1,80 +1,88 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { ArrowLeft, CheckCircle2, LifeBuoy, RotateCcw, Send } from 'lucide-react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
+import { ArrowLeft, Image as ImageIcon, LifeBuoy, Send, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
 import { LoadingState } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Avatar } from '@/components/shared/Avatar'
 import { SearchInput } from '@/components/shared/SearchInput'
-import { SupportStatusBadge } from '@/components/shared/StatusBadge'
-import { SUPPORT_STATUS_OPTIONS } from '@/components/shared/filterOptions'
 import { useDebounce } from '@/hooks/useDebounce'
+import { imageUrl } from '@/components/shared/getImageUrl'
 import {
-  useGetSupportTicketsQuery,
-  useGetSupportThreadQuery,
-  useSendSupportReplyMutation,
-  useSetSupportTicketStatusMutation,
+  useGetChatsQuery,
+  useGetMessagesQuery,
+  useSendMessageMutation,
   useMarkSupportTicketReadMutation,
 } from '@/services/endpoints/supportApi'
 import { formatRelative, formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import type { SupportTicket } from '@/types/models'
+import type { Chat, ChatParticipant, ChatMessage } from '@/types/models'
 
 export default function SupportPage() {
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const debouncedSearch = useDebounce(search)
-  const { data, isLoading } = useGetSupportTicketsQuery({ search: debouncedSearch, status, pageSize: 100 })
-  const tickets = data?.items ?? []
+  const { data: chatsList, isLoading } = useGetChatsQuery()
+  const chats = chatsList ?? []
 
-  const active = tickets.find((t) => t.id === activeId) ?? null
+  const filteredChats = chats.filter((c) => {
+    if (!debouncedSearch.trim()) return true
+    const term = debouncedSearch.toLowerCase()
+    const pName = c.participants?.some((p) => p.name?.toLowerCase().includes(term))
+    const lastMsg = c.lastMessage?.text?.toLowerCase().includes(term)
+    return pName || lastMsg
+  })
+
+  const activeChat = chats.find((c) => c.id === activeId || c._id === activeId) ?? null
 
   return (
     <div>
       <PageHeader
-        title="Customer Support"
-        description="Messages from buyers and sellers land here — reply to help them out."
+        title="Customer Support & Chat"
+        description="Live messaging and conversations with marketplace users, buyers, and sellers."
       />
 
       <div className="flex h-[calc(100vh-13rem)] overflow-hidden rounded-xl border border-ink-100 bg-white shadow-card">
-        {/* Inbox list */}
+        {/* Inbox List */}
         <div
           className={cn(
             'w-full flex-col border-r border-ink-100 lg:flex lg:w-80 xl:w-96',
-            active ? 'hidden lg:flex' : 'flex',
+            activeChat ? 'hidden lg:flex' : 'flex',
           )}
         >
-          <div className="space-y-3 border-b border-ink-100 p-4">
-            <SearchInput value={search} onChange={setSearch} placeholder="Search conversations…" />
-            <Select options={SUPPORT_STATUS_OPTIONS} value={status} onChange={(e) => setStatus(e.target.value)} />
+          <div className="border-b border-ink-100 p-4">
+            <SearchInput value={search} onChange={setSearch} placeholder="Search chats…" />
           </div>
 
           <div className="scrollbar-thin flex-1 overflow-y-auto">
             {isLoading ? (
               <LoadingState />
-            ) : tickets.length === 0 ? (
+            ) : filteredChats.length === 0 ? (
               <EmptyState icon={LifeBuoy} title="No conversations" description="You're all caught up." />
             ) : (
-              tickets.map((t) => (
-                <TicketRow key={t.id} ticket={t} active={t.id === activeId} onClick={() => setActiveId(t.id)} />
+              filteredChats.map((c) => (
+                <ChatRow
+                  key={c.id || c._id}
+                  chat={c}
+                  active={c.id === activeId || c._id === activeId}
+                  onClick={() => setActiveId(c.id || c._id)}
+                />
               ))
             )}
           </div>
         </div>
 
-        {/* Conversation */}
-        <div className={cn('flex-1 flex-col', active ? 'flex' : 'hidden lg:flex')}>
-          {active ? (
-            <Conversation ticket={active} onBack={() => setActiveId(null)} />
+        {/* Conversation View */}
+        <div className={cn('flex-1 flex-col', activeChat ? 'flex' : 'hidden lg:flex')}>
+          {activeChat ? (
+            <Conversation chat={activeChat} onBack={() => setActiveId(null)} />
           ) : (
             <div className="flex flex-1 items-center justify-center p-8">
               <EmptyState
                 icon={LifeBuoy}
                 title="Select a conversation"
-                description="Choose a ticket from the inbox to read and reply."
+                description="Choose a chat from the inbox to read and reply."
               />
             </div>
           )}
@@ -84,7 +92,15 @@ export default function SupportPage() {
   )
 }
 
-function TicketRow({ ticket, active, onClick }: { ticket: SupportTicket; active: boolean; onClick: () => void }) {
+function ChatRow({ chat, active, onClick }: { chat: Chat; active: boolean; onClick: () => void }) {
+  const counterparty =
+    chat.participants?.find((p) => p.role !== 'super_admin' && p.role !== 'admin') ||
+    chat.participants?.[0]
+
+  const name = counterparty?.name || 'Customer'
+  const lastMsgText = chat.lastMessage?.text || 'No messages yet'
+  const time = chat.lastMessage?.createdAt || chat.updatedAt || chat.createdAt
+
   return (
     <button
       onClick={onClick}
@@ -93,19 +109,22 @@ function TicketRow({ ticket, active, onClick }: { ticket: SupportTicket; active:
         active && 'bg-brand-50/60',
       )}
     >
-      <Avatar name={ticket.customerName} size="md" />
+      <Avatar name={name} src={counterparty?.profileImage} size="md" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="truncate font-medium text-ink-900">{ticket.customerName}</p>
-          <span className="shrink-0 text-xs text-ink-400">{formatRelative(ticket.lastMessageAt)}</span>
+          <p className="truncate font-medium text-ink-900">{name}</p>
+          {time && <span className="shrink-0 text-xs text-ink-400">{formatRelative(time)}</span>}
         </div>
-        <p className="truncate text-sm font-medium text-ink-700">{ticket.subject}</p>
-        <p className="truncate text-xs text-ink-500">{ticket.lastMessage}</p>
-        <div className="mt-1.5 flex items-center gap-2">
-          <SupportStatusBadge status={ticket.status} />
-          {ticket.unread > 0 && (
+        <p className="truncate text-xs text-ink-500">{lastMsgText}</p>
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          {chat.communicationType && (
+            <span className="inline-block rounded bg-ink-100 px-1.5 py-0.5 text-[10px] font-medium text-ink-700 capitalize">
+              {chat.communicationType}
+            </span>
+          )}
+          {Boolean(chat.unreadCount && chat.unreadCount > 0) && (
             <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1.5 text-xs font-semibold text-white">
-              {ticket.unread}
+              {chat.unreadCount}
             </span>
           )}
         </div>
@@ -114,30 +133,65 @@ function TicketRow({ ticket, active, onClick }: { ticket: SupportTicket; active:
   )
 }
 
-function Conversation({ ticket, onBack }: { ticket: SupportTicket; onBack: () => void }) {
-  const { data: messages, isFetching } = useGetSupportThreadQuery(ticket.id)
-  const [sendReply, { isLoading: sending }] = useSendSupportReplyMutation()
-  const [setStatus] = useSetSupportTicketStatusMutation()
+function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
+  const chatId = chat.id || chat._id
+  const { data: messages, isFetching } = useGetMessagesQuery(chatId)
+  const [sendMessageApi, { isLoading: sending }] = useSendMessageMutation()
   const [markRead] = useMarkSupportTicketReadMutation()
-  const [body, setBody] = useState('')
+
+  const [text, setText] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Opening a conversation marks it read.
-  useEffect(() => {
-    if (ticket.unread > 0) markRead(ticket.id)
-  }, [ticket.id, ticket.unread, markRead])
+  const counterparty =
+    chat.participants?.find((p) => p.role !== 'super_admin' && p.role !== 'admin') ||
+    chat.participants?.[0]
 
-  // Keep the thread scrolled to the latest message.
+  const customerName = counterparty?.name || 'Customer'
+  const customerEmail = counterparty?.email || ''
+
+  useEffect(() => {
+    if (chat.unreadCount && chat.unreadCount > 0) {
+      markRead(chatId)
+    }
+  }, [chatId, chat.unreadCount, markRead])
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
   }, [messages])
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setSelectedFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const removeFile = () => {
+    setSelectedFile(null)
+    setImagePreview(null)
+  }
+
   const submit = async (e?: FormEvent) => {
     e?.preventDefault()
-    const text = body.trim()
-    if (!text) return
-    setBody('')
-    await sendReply({ ticketId: ticket.id, body: text })
+    const trimmed = text.trim()
+    if (!trimmed && !selectedFile) return
+
+    const currentText = trimmed
+    const currentFile = selectedFile
+
+    setText('')
+    setSelectedFile(null)
+    setImagePreview(null)
+
+    await sendMessageApi({
+      chatId,
+      text: currentText,
+      imageFile: currentFile,
+    })
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -154,45 +208,52 @@ function Conversation({ ticket, onBack }: { ticket: SupportTicket; onBack: () =>
         <button onClick={onBack} className="rounded-lg p-1.5 text-ink-500 hover:bg-ink-100 lg:hidden">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <Avatar name={ticket.customerName} size="md" />
+        <Avatar name={customerName} src={counterparty?.profileImage} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-ink-900">{ticket.customerName}</p>
-          <p className="truncate text-xs text-ink-500">
-            {ticket.subject} · {ticket.customerEmail}
-          </p>
+          <p className="truncate font-semibold text-ink-900">{customerName}</p>
+          {customerEmail && <p className="truncate text-xs text-ink-500">{customerEmail}</p>}
         </div>
-        <SupportStatusBadge status={ticket.status} />
-        {ticket.status === 'resolved' ? (
-          <Button size="sm" variant="outline" onClick={() => setStatus({ id: ticket.id, status: 'open' })}>
-            <RotateCcw className="h-3.5 w-3.5" /> Reopen
-          </Button>
-        ) : (
-          <Button size="sm" variant="outline" onClick={() => setStatus({ id: ticket.id, status: 'resolved' })}>
-            <CheckCircle2 className="h-3.5 w-3.5" /> Resolve
-          </Button>
-        )}
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="scrollbar-thin flex-1 space-y-3 overflow-y-auto bg-ink-50/40 p-4">
+      <div ref={scrollRef} className="scrollbar-thin flex-1 space-y-4 overflow-y-auto bg-ink-50/40 p-4">
         {isFetching && !messages ? (
           <LoadingState />
         ) : (
-          messages?.map((m) => {
-            const fromAgent = m.sender === 'agent'
+          messages?.map((m: ChatMessage) => {
+            const senderObj = typeof m.sender === 'object' ? (m.sender as ChatParticipant) : null
+            const senderRole = senderObj?.role || senderObj?.activeRole || ''
+            const isAgent =
+              senderRole === 'super_admin' ||
+              senderRole === 'admin' ||
+              m.sender === 'agent' ||
+              m.sender === 'me'
+
+            const senderName = senderObj?.name || (isAgent ? 'You' : customerName)
+            const imgPath = m.image ? imageUrl(m.image) : ''
+
             return (
-              <div key={m.id} className={cn('flex', fromAgent ? 'justify-end' : 'justify-start')}>
-                <div className={cn('max-w-[78%]', fromAgent ? 'text-right' : 'text-left')}>
+              <div key={m.id || m._id} className={cn('flex', isAgent ? 'justify-end' : 'justify-start')}>
+                <div className={cn('max-w-[78%]', isAgent ? 'text-right' : 'text-left')}>
                   <div
                     className={cn(
-                      'inline-block rounded-2xl px-3.5 py-2 text-sm',
-                      fromAgent ? 'bg-brand-600 text-white' : 'bg-white text-ink-900 ring-1 ring-ink-100',
+                      'inline-block rounded-2xl px-4 py-2.5 text-sm shadow-sm',
+                      isAgent
+                        ? 'bg-brand-600 text-white rounded-br-none'
+                        : 'bg-white text-ink-900 ring-1 ring-ink-100 rounded-bl-none',
                     )}
                   >
-                    {m.body}
+                    {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                    {imgPath && (
+                      <img
+                        src={imgPath}
+                        alt="Attachment"
+                        className="mt-2 max-h-60 max-w-xs rounded-lg object-cover border border-black/10"
+                      />
+                    )}
                   </div>
                   <p className="mt-1 px-1 text-[11px] text-ink-400">
-                    {fromAgent ? 'You' : ticket.customerName} · {formatDateTime(m.sentAt)}
+                    {senderName} · {formatDateTime(m.createdAt)}
                   </p>
                 </div>
               </div>
@@ -202,18 +263,54 @@ function Conversation({ ticket, onBack }: { ticket: SupportTicket; onBack: () =>
       </div>
 
       {/* Composer */}
-      <form onSubmit={submit} className="flex items-end gap-2 border-t border-ink-100 p-3">
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={onKeyDown}
-          rows={1}
-          placeholder="Type your reply…  (Enter to send, Shift+Enter for a new line)"
-          className="scrollbar-thin max-h-32 min-h-[44px] flex-1 resize-none rounded-lg border border-ink-200 px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-300 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30"
-        />
-        <Button type="submit" loading={sending} disabled={!body.trim()} className="h-11 shrink-0">
-          <Send className="h-4 w-4" /> Send
-        </Button>
+      <form onSubmit={submit} className="border-t border-ink-100 p-3 space-y-2">
+        {imagePreview && (
+          <div className="relative inline-block">
+            <img src={imagePreview} alt="Upload preview" className="h-16 w-16 rounded-lg object-cover border border-ink-200" />
+            <button
+              type="button"
+              onClick={removeFile}
+              className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink-900 text-white hover:bg-red-600"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-ink-200 text-ink-500 hover:bg-ink-50 hover:text-ink-900"
+            title="Attach image"
+          >
+            <ImageIcon className="h-5 w-5" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleFileChange}
+          />
+
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={onKeyDown}
+            rows={1}
+            placeholder="Type your message… (Enter to send, Shift+Enter for new line)"
+            className="scrollbar-thin max-h-32 min-h-[44px] flex-1 resize-none rounded-lg border border-ink-200 px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-300 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30"
+          />
+          <Button
+            type="submit"
+            loading={sending}
+            disabled={!text.trim() && !selectedFile}
+            className="h-11 shrink-0"
+          >
+            <Send className="h-4 w-4" /> Send
+          </Button>
+        </div>
       </form>
     </>
   )
