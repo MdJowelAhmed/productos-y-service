@@ -42,7 +42,7 @@ export const supportApi = api.injectEndpoints({
       transformResponse: (response: any): ChatMessage[] => {
         const msgsRaw = response?.data?.messages || response?.data || response || []
         const msgList = Array.isArray(msgsRaw) ? msgsRaw : []
-        return msgList.map((m: any) => ({
+        const mapped = msgList.map((m: any) => ({
           id: String(m._id || m.id || ''),
           _id: m._id || m.id,
           chatId: String(m.chatId || ''),
@@ -54,6 +54,9 @@ export const supportApi = api.injectEndpoints({
           createdAt: m.createdAt || new Date().toISOString(),
           updatedAt: m.updatedAt,
         }))
+        return mapped.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        )
       },
       providesTags: (_r, _e, chatId) => [{ type: 'SupportThread', id: chatId }],
     }),
@@ -151,7 +154,7 @@ export const supportApi = api.injectEndpoints({
       transformResponse: (response: any): SupportMessage[] => {
         const msgsRaw = response?.data?.messages || response?.data || response || []
         const msgList = Array.isArray(msgsRaw) ? msgsRaw : []
-        return msgList.map((m: any) => {
+        const mapped = msgList.map((m: any) => {
           const senderName = typeof m.sender === 'object' ? m.sender?.name : ''
           const isAgent = senderName.toLowerCase().includes('admin') || m.sender === 'agent'
           return {
@@ -162,6 +165,9 @@ export const supportApi = api.injectEndpoints({
             sentAt: m.createdAt || new Date().toISOString(),
           } as SupportMessage
         })
+        return mapped.sort(
+          (a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+        )
       },
       providesTags: (_r, _e, chatId) => [{ type: 'SupportThread', id: chatId }],
     }),

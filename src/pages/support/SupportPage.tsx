@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Avatar } from '@/components/shared/Avatar'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAuth } from '@/hooks/useAuth'
 import { imageUrl } from '@/components/shared/getImageUrl'
 import {
   useGetChatsQuery,
@@ -134,6 +135,7 @@ function ChatRow({ chat, active, onClick }: { chat: Chat; active: boolean; onCli
 }
 
 function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
+  const { user } = useAuth()
   const chatId = chat.id || chat._id
   const { data: messages, isFetching } = useGetMessagesQuery(chatId)
   const [sendMessageApi, { isLoading: sending }] = useSendMessageMutation()
@@ -159,7 +161,9 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   }, [chatId, chat.unreadCount, markRead])
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    }
   }, [messages])
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -222,14 +226,18 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
         ) : (
           messages?.map((m: ChatMessage) => {
             const senderObj = typeof m.sender === 'object' ? (m.sender as ChatParticipant) : null
-            const senderRole = senderObj?.role || senderObj?.activeRole || ''
+            const senderId = senderObj ? String(senderObj._id || '') : String(m.sender || '')
+            const senderRole = senderObj?.role || ''
+
             const isAgent =
+              (user?.id && senderId === String(user.id)) ||
+              (user?.email && senderObj?.email === user.email) ||
               senderRole === 'super_admin' ||
               senderRole === 'admin' ||
               m.sender === 'agent' ||
               m.sender === 'me'
 
-            const senderName = senderObj?.name || (isAgent ? 'You' : customerName)
+            const senderName = isAgent ? 'You' : (senderObj?.name || customerName)
             const imgPath = m.image ? imageUrl(m.image) : ''
 
             return (
