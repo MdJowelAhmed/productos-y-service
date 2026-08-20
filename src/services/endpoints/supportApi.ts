@@ -8,6 +8,20 @@ export interface SendMessageRequest {
   imageFile?: File | null
 }
 
+export interface PaginatedMessages {
+  messages: ChatMessage[]
+  page: number
+  totalPage: number
+  total: number
+  hasMore: boolean
+}
+
+export interface GetMessagesParams {
+  chatId: ID
+  page?: number
+  limit?: number
+}
+
 export const supportApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getChats: builder.query<Chat[], void>({
@@ -34,12 +48,13 @@ export const supportApi = api.injectEndpoints({
       providesTags: ['SupportTicket'],
     }),
 
-    getMessages: builder.query<ChatMessage[], ID>({
-      query: (chatId) => ({
+    getMessages: builder.query<PaginatedMessages, GetMessagesParams>({
+      query: ({ chatId, page = 1, limit = 20 }) => ({
         url: `/messages/${chatId}`,
         method: 'GET',
+        params: { page, limit },
       }),
-      transformResponse: (response: any): ChatMessage[] => {
+      transformResponse: (response: any): PaginatedMessages => {
         const msgsRaw = response?.data?.messages || response?.data || response || []
         const msgList = Array.isArray(msgsRaw) ? msgsRaw : []
         const mapped = msgList.map((m: any) => ({
@@ -54,11 +69,24 @@ export const supportApi = api.injectEndpoints({
           createdAt: m.createdAt || new Date().toISOString(),
           updatedAt: m.updatedAt,
         }))
-        return mapped.sort(
+        const sorted = mapped.sort(
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         )
+
+        const meta = response?.meta || {}
+        const page = meta.page ?? 1
+        const totalPage = meta.totalPage ?? 1
+        const total = meta.total ?? sorted.length
+
+        return {
+          messages: sorted,
+          page,
+          totalPage,
+          total,
+          hasMore: page < totalPage,
+        }
       },
-      providesTags: (_r, _e, chatId) => [{ type: 'SupportThread', id: chatId }],
+      providesTags: (_r, _e, { chatId }) => [{ type: 'SupportThread', id: chatId }],
     }),
 
     sendMessage: builder.mutation<ChatMessage, SendMessageRequest>({
@@ -99,8 +127,8 @@ export const supportApi = api.injectEndpoints({
         const tempId = `optimistic_${Date.now()}`
         const previewUrl = imageFile ? URL.createObjectURL(imageFile) : undefined
         const patch = dispatch(
-          supportApi.util.updateQueryData('getMessages', chatId, (draft) => {
-            draft.push({
+          supportApi.util.updateQueryData('getMessages', { chatId, page: 1, limit: 20 }, (draft) => {
+            draft.messages.push({
               id: tempId,
               _id: tempId,
               chatId: String(chatId),
@@ -118,10 +146,10 @@ export const supportApi = api.injectEndpoints({
         try {
           const { data: realMsg } = await queryFulfilled
           dispatch(
-            supportApi.util.updateQueryData('getMessages', chatId, (draft) => {
-              const idx = draft.findIndex((m) => String(m.id || m._id) === tempId)
+            supportApi.util.updateQueryData('getMessages', { chatId, page: 1, limit: 20 }, (draft) => {
+              const idx = draft.messages.findIndex((m) => String(m.id || m._id) === tempId)
               if (idx !== -1) {
-                draft[idx] = realMsg
+                draft.messages[idx] = realMsg
               }
             }),
           )

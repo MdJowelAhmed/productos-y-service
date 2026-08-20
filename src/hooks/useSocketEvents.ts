@@ -29,10 +29,10 @@ export function useSocketEvents(activeChatId?: string | null) {
 
       if (chatId) {
         dispatch(
-          supportApi.util.updateQueryData('getMessages', chatId, (draft) => {
-            const exists = draft.some((m) => String(m.id || m._id) === String(msg._id || msg.id))
+          supportApi.util.updateQueryData('getMessages', { chatId, page: 1, limit: 20 }, (draft) => {
+            const exists = draft.messages.some((m) => String(m.id || m._id) === String(msg._id || msg.id))
             if (!exists) {
-              draft.push({
+              draft.messages.push({
                 id: String(msg._id || msg.id || ''),
                 _id: msg._id || msg.id,
                 chatId,
@@ -44,7 +44,7 @@ export function useSocketEvents(activeChatId?: string | null) {
                 createdAt: msg.createdAt || new Date().toISOString(),
                 updatedAt: msg.updatedAt,
               })
-              draft.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+              draft.messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
             }
           }),
         )

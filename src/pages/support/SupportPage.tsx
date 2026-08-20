@@ -140,7 +140,11 @@ function ChatRow({ chat, active, onClick }: { chat: Chat; active: boolean; onCli
 function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   const { user } = useAuth()
   const chatId = chat.id || chat._id
-  const { data: messages, isFetching } = useGetMessagesQuery(chatId)
+
+  const [page, setPage] = useState(1)
+  const [accumulatedMessages, setAccumulatedMessages] = useState<ChatMessage[]>([])
+
+  const { data: pageData, isFetching } = useGetMessagesQuery({ chatId, page, limit: 20 })
   const [sendMessageApi, { isLoading: sending }] = useSendMessageMutation()
   const [markRead] = useMarkSupportTicketReadMutation()
 
@@ -149,6 +153,8 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const oldScrollHeightRef = useRef<number>(0)
+  const isInitialScrollRef = useRef<boolean>(true)
 
   const counterparty =
     chat.participants?.find((p) => p.role !== 'super_admin' && p.role !== 'admin') ||
@@ -157,17 +163,62 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
   const customerName = counterparty?.name || 'Customer'
   const customerEmail = counterparty?.email || ''
 
+  // Reset pagination state when active chat changes
+  useEffect(() => {
+    setPage(1)
+    setAccumulatedMessages([])
+    isInitialScrollRef.current = true
+  }, [chatId])
+
+  // Accumulate older/newer messages from paginated query responses
+  useEffect(() => {
+    if (pageData?.messages) {
+      setAccumulatedMessages((prev) => {
+        const map = new Map<string, ChatMessage>()
+        pageData.messages.forEach((m) => map.set(String(m.id || m._id), m))
+        prev.forEach((m) => map.set(String(m.id || m._id), m))
+
+        const merged = Array.from(map.values())
+        return merged.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        )
+      })
+    }
+  }, [pageData])
+
+  // Auto-scroll on initial load & preserve scroll position when loading older pages
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+
+    if (isInitialScrollRef.current && accumulatedMessages.length > 0) {
+      container.scrollTo({ top: container.scrollHeight })
+      isInitialScrollRef.current = false
+    } else if (oldScrollHeightRef.current > 0) {
+      const newScrollHeight = container.scrollHeight
+      const diff = newScrollHeight - oldScrollHeightRef.current
+      container.scrollTop = diff
+      oldScrollHeightRef.current = 0
+    }
+  }, [accumulatedMessages])
+
+  // Mark chat as read
   useEffect(() => {
     if (chat.unreadCount && chat.unreadCount > 0) {
       markRead(chatId)
     }
   }, [chatId, chat.unreadCount, markRead])
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  // Handle scroll-up to load older page messages
+  const handleScroll = () => {
+    const container = scrollRef.current
+    if (!container || isFetching || !pageData?.hasMore) return
+
+    if (container.scrollTop <= 40) {
+      oldScrollHeightRef.current = container.scrollHeight
+      setPage((prev) => prev + 1)
     }
-  }, [messages])
+  }
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -199,6 +250,12 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
       text: currentText,
       imageFile: currentFile,
     })
+
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+      }
+    }, 100)
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -223,11 +280,23 @@ function Conversation({ chat, onBack }: { chat: Chat; onBack: () => void }) {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="scrollbar-thin flex-1 space-y-4 overflow-y-auto bg-ink-50/40 p-4">
-        {isFetching && !messages ? (
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="scrollbar-thin flex-1 space-y-4 overflow-y-auto bg-ink-50/40 p-4"
+      >
+        {isFetching && page > 1 && (
+          <div className="flex justify-center py-2">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-ink-500 shadow-xs border border-ink-100 animate-pulse">
+              Loading older messages…
+            </span>
+          </div>
+        )}
+
+        {isFetching && accumulatedMessages.length === 0 ? (
           <LoadingState />
         ) : (
-          messages?.map((m: ChatMessage) => {
+          accumulatedMessages.map((m: ChatMessage) => {
             const senderObj = typeof m.sender === 'object' ? (m.sender as ChatParticipant) : null
             const senderId = senderObj ? String(senderObj._id || '') : String(m.sender || '')
             const senderRole = senderObj?.role || senderObj?.activeRole || ''
