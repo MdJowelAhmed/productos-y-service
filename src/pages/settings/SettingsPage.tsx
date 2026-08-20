@@ -1,10 +1,9 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Camera, Check, Lock, ShieldCheck, SlidersHorizontal, Trash2, UserCog } from 'lucide-react'
+import { Camera, Check, Lock, ShieldCheck, Trash2, UserCog } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Switch } from '@/components/ui/Switch'
 import { Avatar } from '@/components/shared/Avatar'
 import { useAuth } from '@/hooks/useAuth'
 import { useAppDispatch } from '@/store/hooks'
@@ -22,9 +21,6 @@ export default function SettingsPage() {
   const [avatar, setAvatar] = useState<string | undefined>(user?.avatarUrl)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
-
-  const [autoApprove, setAutoApprove] = useState(false)
-  const [requireSubscription, setRequireSubscription] = useState(true)
 
   const handlePhoto = (e: ChangeEvent<HTMLInputElement>) => {
     setPhotoError(null)
@@ -51,7 +47,7 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Profile */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-3">
           <CardHeader
             title={
               <span className="flex items-center gap-2">
@@ -121,33 +117,6 @@ export default function SettingsPage() {
                 )}
               </div>
             </form>
-          </CardBody>
-        </Card>
-
-        {/* Marketplace rules */}
-        <Card>
-          <CardHeader
-            title={
-              <span className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-brand-600" /> Marketplace rules
-              </span>
-            }
-            description="Control how stores are onboarded."
-          />
-          <CardBody className="space-y-5">
-            <SettingToggle
-              title="Auto-approve new stores"
-              description="Skip manual review when a store is created."
-              checked={autoApprove}
-              onChange={setAutoApprove}
-            />
-            <div className="border-t border-ink-100" />
-            <SettingToggle
-              title="Require subscription to open a store"
-              description="Sellers must hold an active plan before listing."
-              checked={requireSubscription}
-              onChange={setRequireSubscription}
-            />
           </CardBody>
         </Card>
 
@@ -237,30 +206,7 @@ function ChangePasswordForm() {
         <Button type="submit" loading={isLoading}>
           Update password
         </Button>
-        <span className="text-xs text-ink-400">Demo current password: admin123</span>
       </div>
     </form>
-  )
-}
-
-function SettingToggle({
-  title,
-  description,
-  checked,
-  onChange,
-}: {
-  title: string
-  description: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <p className="text-sm font-medium text-ink-900">{title}</p>
-        <p className="mt-0.5 text-xs text-ink-500">{description}</p>
-      </div>
-      <Switch checked={checked} onChange={onChange} label={title} />
-    </div>
   )
 }
