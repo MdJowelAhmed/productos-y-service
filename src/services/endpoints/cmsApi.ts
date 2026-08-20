@@ -31,7 +31,14 @@ export function mapBackendBannerToBanner(raw: any): Banner {
   const description = raw.description || ''
   const imagePath = raw.image || raw.imageUrl || ''
   const rawStatus = raw.status
-  const isActive = typeof rawStatus === 'boolean' ? rawStatus : rawStatus === 'active' || raw.isActive !== false
+  const isActive =
+    typeof rawStatus === 'boolean'
+      ? rawStatus
+      : typeof rawStatus === 'string'
+      ? rawStatus.toLowerCase() === 'active'
+      : Boolean(raw.isActive)
+
+  const statusStr = typeof rawStatus === 'string' ? rawStatus : (isActive ? 'active' : 'inactive')
 
   return {
     id,
@@ -43,7 +50,7 @@ export function mapBackendBannerToBanner(raw: any): Banner {
     image: imagePath,
     placement: raw.placement || 'home_top',
     isActive,
-    status: typeof rawStatus === 'boolean' ? (rawStatus ? 'active' : 'inactive') : (rawStatus || (isActive ? 'active' : 'inactive')),
+    status: statusStr,
     isDeleted: raw.isDeleted,
     startsAt: raw.startsAt || raw.createdAt || new Date().toISOString(),
     endsAt: raw.endsAt || raw.updatedAt || new Date().toISOString(),
@@ -85,10 +92,26 @@ export const cmsApi = api.injectEndpoints({
         real: ({ id, isActive }) => ({
           url: `/banners/status/${id}`,
           method: 'PATCH',
-          body: { status: isActive },
+          body: { status: isActive ? 'active' : 'inactive' },
         }),
         transformReal: (response: any) => mapBackendBannerToBanner(response?.data || response),
       }),
+      async onQueryStarted({ id, isActive }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          cmsApi.util.updateQueryData('getBanners', undefined, (draft) => {
+            const banner = draft.find((b) => b.id === id || b._id === id)
+            if (banner) {
+              banner.isActive = isActive
+              banner.status = isActive ? 'active' : 'inactive'
+            }
+          }),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patch.undo()
+        }
+      },
       invalidatesTags: ['Banner'],
     }),
 

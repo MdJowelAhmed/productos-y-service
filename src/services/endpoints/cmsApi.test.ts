@@ -26,4 +26,20 @@ describe('mapBackendBannerToBanner', () => {
     expect(mapped.isActive).toBe(true)
     expect(mapped.isDeleted).toBe(false)
   })
+
+  it('correctly sets isActive to false when backend status is inactive', () => {
+    const raw = {
+      _id: '6a7d3c561bdc423450bb92d0',
+      name: 'test test',
+      description: 'b',
+      image: '/uploads/image/frame-2147226136-1786592342239.png',
+      status: 'inactive',
+      isDeleted: false,
+    }
+
+    const mapped = mapBackendBannerToBanner(raw)
+
+    expect(mapped.status).toBe('inactive')
+    expect(mapped.isActive).toBe(false)
+  })
 })
