@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { LoadingState } from '@/components/ui/Spinner'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { imageUrl } from '@/components/shared/getImageUrl'
+import { toast } from '@/components/ui/Toast'
 import {
   useGetBannersQuery,
   useToggleBannerMutation,
@@ -24,12 +25,49 @@ import type { Banner } from '@/types/models'
 
 export default function BannersPage() {
   const { data: banners, isLoading } = useGetBannersQuery()
-  const [toggleBanner] = useToggleBannerMutation()
+  const [toggleBanner, { isLoading: toggling }] = useToggleBannerMutation()
   const [deleteBanner, { isLoading: deleting }] = useDeleteBannerMutation()
 
   const [editing, setEditing] = useState<Banner | null>(null)
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState<Banner | null>(null)
+  const [toToggleStatus, setToToggleStatus] = useState<{
+    banner: Banner
+    targetStatus: boolean
+  } | null>(null)
+
+  const handleConfirmToggleStatus = async () => {
+    if (!toToggleStatus) return
+    const { banner, targetStatus } = toToggleStatus
+    try {
+      await toggleBanner({ id: banner.id, isActive: targetStatus }).unwrap()
+      toast.success(
+        `Banner "${banner.name || banner.title}" set to ${
+          targetStatus ? 'active' : 'inactive'
+        } successfully!`,
+      )
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message || err?.message || 'Failed to update banner status. Please try again.',
+      )
+    } finally {
+      setToToggleStatus(null)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!toDelete) return
+    try {
+      await deleteBanner(toDelete.id).unwrap()
+      toast.success(
+        `Banner "${toDelete.name || toDelete.title}" deleted successfully!`,
+      )
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || 'Failed to delete banner.')
+    } finally {
+      setToDelete(null)
+    }
+  }
 
   return (
     <div>
@@ -51,7 +89,9 @@ export default function BannersPage() {
             <BannerCard
               key={banner.id}
               banner={banner}
-              onToggle={(isActive) => toggleBanner({ id: banner.id, isActive })}
+              onToggleRequest={(b, targetStatus) =>
+                setToToggleStatus({ banner: b, targetStatus })
+              }
               onEdit={() => setEditing(banner)}
               onDelete={() => setToDelete(banner)}
             />
@@ -68,16 +108,29 @@ export default function BannersPage() {
         }}
       />
 
+      {/* Status Toggle Confirmation Modal */}
+      <ConfirmDialog
+        open={Boolean(toToggleStatus)}
+        title={`Change status to ${toToggleStatus?.targetStatus ? 'Active' : 'Inactive'}?`}
+        description={`Are you sure you want to change the status of "${
+          toToggleStatus?.banner.name || toToggleStatus?.banner.title
+        }" to ${toToggleStatus?.targetStatus ? 'active' : 'inactive'}?`}
+        confirmLabel={`Set to ${toToggleStatus?.targetStatus ? 'Active' : 'Inactive'}`}
+        tone={toToggleStatus?.targetStatus ? 'primary' : 'danger'}
+        loading={toggling}
+        onConfirm={handleConfirmToggleStatus}
+        onClose={() => setToToggleStatus(null)}
+      />
+
+      {/* Delete Confirmation Modal */}
       <ConfirmDialog
         open={Boolean(toDelete)}
         title={`Delete “${toDelete?.name || toDelete?.title}” banner?`}
+        description="This action will permanently delete the promotional banner graphic."
         confirmLabel="Delete banner"
         tone="danger"
         loading={deleting}
-        onConfirm={async () => {
-          if (toDelete) await deleteBanner(toDelete.id)
-          setToDelete(null)
-        }}
+        onConfirm={handleConfirmDelete}
         onClose={() => setToDelete(null)}
       />
     </div>
@@ -86,12 +139,12 @@ export default function BannersPage() {
 
 function BannerCard({
   banner,
-  onToggle,
+  onToggleRequest,
   onEdit,
   onDelete,
 }: {
   banner: Banner
-  onToggle: (v: boolean) => void
+  onToggleRequest: (banner: Banner, targetStatus: boolean) => void
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -123,7 +176,11 @@ function BannerCard({
               <p className="mt-1 text-xs text-ink-600 line-clamp-2">{banner.description}</p>
             )}
           </div>
-          <Switch checked={banner.isActive} onChange={onToggle} label={`Toggle ${displayName}`} />
+          <Switch
+            checked={banner.isActive}
+            onChange={(checked) => onToggleRequest(banner, checked)}
+            label={`Toggle ${displayName}`}
+          />
         </div>
         {banner.createdAt && (
           <p className="mt-3 text-xs text-ink-400">
@@ -197,12 +254,20 @@ function BannerFormModal({
       imageFile,
     }
 
-    if (banner) {
-      await updateBanner({ id: banner.id, ...payload }).unwrap()
-    } else {
-      await createBanner(payload).unwrap()
+    try {
+      if (banner) {
+        await updateBanner({ id: banner.id, ...payload }).unwrap()
+        toast.success(`Banner "${name}" updated successfully!`)
+      } else {
+        await createBanner(payload).unwrap()
+        toast.success(`Banner "${name}" created successfully!`)
+      }
+      onClose()
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message || err?.message || 'Failed to save banner. Please check details and try again.',
+      )
     }
-    onClose()
   }
 
   return (

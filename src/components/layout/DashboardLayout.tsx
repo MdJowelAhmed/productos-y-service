@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { ToastContainer } from '@/components/ui/Toast'
 
 /** App shell: persistent sidebar + topbar with a routed content outlet. */
 export function DashboardLayout() {
@@ -16,6 +17,7 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      <ToastContainer />
     </div>
   )
 }
