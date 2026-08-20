@@ -61,7 +61,7 @@ export const adminsApi = api.injectEndpoints({
         body: {
           name: body.name,
           email: body.email,
-          password: body.password || 'admin123',
+          password: body.password,
           role: body.role || 'admin',
         },
       }),

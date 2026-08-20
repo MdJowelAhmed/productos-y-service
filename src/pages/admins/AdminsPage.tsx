@@ -76,7 +76,7 @@ export default function AdminsPage() {
       setForm({
         name: '',
         email: '',
-        password: 'admin123',
+        password: '',
         role: 'admin',
       })
     }
@@ -99,7 +99,7 @@ export default function AdminsPage() {
         await createAdmin({
           name: form.name,
           email: form.email,
-          password: form.password || 'admin123',
+          password: form.password,
           role: form.role,
         }).unwrap()
         toast.success(`Admin "${form.name}" created successfully!`)
@@ -276,7 +276,7 @@ export default function AdminsPage() {
             label="Full Name"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="e.g. Emam Bokhari"
+            placeholder="Enter full name"
             required
           />
           <Input
@@ -284,7 +284,7 @@ export default function AdminsPage() {
             type="email"
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            placeholder="e.g. emam1@gmail.com"
+            placeholder="Enter email address"
             required
           />
           <Input
@@ -292,7 +292,7 @@ export default function AdminsPage() {
             type="password"
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-            placeholder="••••••••"
+            placeholder="Enter password"
             required={!editingAdmin}
           />
           <Select
