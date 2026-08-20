@@ -364,6 +364,8 @@ export type ContentStatus = 'published' | 'draft'
 /** Maps to the mobile app's "Other Pages" (Terms, Privacy, About…). */
 export interface ContentPage {
   id: ID
+  _id?: ID
+  type?: string
   title: string
   status: ContentStatus
   /** Rich HTML body shown in the app. */

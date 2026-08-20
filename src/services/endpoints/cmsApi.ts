@@ -3,10 +3,11 @@ import type { ID } from '@/types/common.types'
 import type { Banner, BannerPlacement, ContentPage, ContentStatus, Faq } from '@/types/models'
 
 export interface UpdateContentPageRequest {
-  id: ID
-  title: string
+  id?: ID
+  type: string
+  title?: string
   content: string
-  status: ContentStatus
+  status?: ContentStatus
 }
 
 export interface BannerInput {
@@ -70,6 +71,29 @@ export function mapBackendFaqToFaq(raw: any): Faq {
     isDeleted: Boolean(raw.isDeleted),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+  }
+}
+
+const RULE_TITLE_MAP: Record<string, string> = {
+  about: 'About Us',
+  terms: 'Terms & Conditions',
+  privacy: 'Privacy Policy',
+  guidelines: 'Community Guidelines',
+}
+
+export function mapBackendRuleToContentPage(raw: any, defaultType?: string): ContentPage {
+  const rawObj = Array.isArray(raw?.data) ? raw.data[0] : raw?.data || raw || {}
+  const type = rawObj.type || defaultType || 'about'
+  const id = String(rawObj._id || rawObj.id || type)
+
+  return {
+    id,
+    _id: rawObj._id || id,
+    type,
+    title: RULE_TITLE_MAP[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Page'),
+    content: rawObj.content || '',
+    status: 'published',
+    updatedAt: rawObj.updatedAt || rawObj.createdAt || new Date().toISOString(),
   }
 }
 
@@ -175,17 +199,46 @@ export const cmsApi = api.injectEndpoints({
       invalidatesTags: ['Banner'],
     }),
 
-    /* Content pages */
+    /* Content pages / Rules */
     getContentPages: builder.query<ContentPage[], void>({
-      query: () => ({ url: '/cms/pages', method: 'GET' }),
-      transformResponse: (response: any) =>
-        Array.isArray(response?.data) ? response.data : Array.isArray(response) ? response : [],
+      async queryFn(_arg, _queryApi, _extraOptions, fetchWithBaseQuery) {
+        const types = ['about', 'terms', 'privacy', 'guidelines']
+        try {
+          const results = await Promise.all(
+            types.map(async (type) => {
+              const res = await fetchWithBaseQuery({ url: `/rules/${type}`, method: 'GET' })
+              if (res.error) {
+                return mapBackendRuleToContentPage(null, type)
+              }
+              return mapBackendRuleToContentPage(res.data, type)
+            }),
+          )
+          return { data: results }
+        } catch {
+          return { data: types.map((t) => mapBackendRuleToContentPage(null, t)) }
+        }
+      },
       providesTags: ['ContentPage'],
     }),
 
+    getRuleByType: builder.query<ContentPage, string>({
+      query: (type) => ({ url: `/rules/${type}`, method: 'GET' }),
+      transformResponse: (response: any, _meta: any, type: string): ContentPage =>
+        mapBackendRuleToContentPage(response, type),
+      providesTags: (_res, _err, type) => [{ type: 'ContentPage', id: type }],
+    }),
+
     updateContentPage: builder.mutation<ContentPage, UpdateContentPageRequest>({
-      query: ({ id, ...body }) => ({ url: `/cms/pages/${id}`, method: 'PATCH', body }),
-      transformResponse: (response: any) => response?.data || response,
+      query: (body) => ({
+        url: '/rules',
+        method: 'POST',
+        body: {
+          content: body.content,
+          type: body.type,
+        },
+      }),
+      transformResponse: (response: any, _meta: any, arg: UpdateContentPageRequest) =>
+        mapBackendRuleToContentPage(response, arg.type),
       invalidatesTags: ['ContentPage'],
     }),
 
@@ -263,6 +316,7 @@ export const {
   useUpdateBannerMutation,
   useDeleteBannerMutation,
   useGetContentPagesQuery,
+  useGetRuleByTypeQuery,
   useUpdateContentPageMutation,
   useGetFaqsQuery,
   useToggleFaqMutation,
