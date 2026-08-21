@@ -404,19 +404,48 @@ export interface Transaction {
 
 /* --------------------------- Engagement --------------------------- */
 
-export type AnnouncementAudience = 'all' | 'buyers' | 'sellers' | 'product_sellers' | 'service_sellers'
-export type AnnouncementStatus = 'sent' | 'scheduled' | 'draft'
+export type AnnouncementAudience =
+  | 'everyone'
+  | 'buyers'
+  | 'all_sellers'
+  | 'product_sellers'
+  | 'service_sellers'
+  | 'all'
+  | 'sellers'
+
+export type AnnouncementStatus = 'sent' | 'scheduled' | 'draft' | string
+
+export interface AnnouncementCreatedBy {
+  _id: ID
+  name: string
+  role?: string
+  activeRole?: string
+  email?: string
+  profileImage?: string
+  gender?: string
+  status?: string
+  phone?: string
+  countryCode?: string
+  verified?: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
+}
 
 export interface Announcement {
   id: ID
+  _id?: ID
   title: string
-  body: string
+  message?: string
+  body?: string
   audience: AnnouncementAudience
-  channel: 'push' | 'email' | 'in_app'
+  channel?: 'push_notification' | 'push' | 'email' | 'in_app' | string
   status: AnnouncementStatus
-  recipients: number
+  recipients?: number
+  createdBy?: AnnouncementCreatedBy | string
+  isDeleted?: boolean
   sentAt?: ISODate
   createdAt: ISODate
+  updatedAt?: ISODate
 }
 
 /* -------------------------- Support & Chat ------------------------------- */

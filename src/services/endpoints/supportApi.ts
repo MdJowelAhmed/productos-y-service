@@ -49,7 +49,7 @@ export const supportApi = api.injectEndpoints({
     }),
 
     getMessages: builder.query<PaginatedMessages, GetMessagesParams>({
-      query: ({ chatId, page = 1, limit = 20 }) => ({
+      query: ({ chatId, page = 1, limit = 50 }) => ({
         url: `/messages/${chatId}`,
         method: 'GET',
         params: { page, limit },
