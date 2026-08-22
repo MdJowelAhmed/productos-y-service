@@ -15,8 +15,8 @@ export default function LoginPage() {
   const location = useLocation()
   const [login, { isLoading }] = useLoginMutation()
 
-  const [email, setEmail] = useState('admin@gmail.com')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,11 +71,13 @@ export default function LoginPage() {
               type="email"
               name="email"
               label="Email"
-              placeholder="admin@gmail.com"
+              placeholder="you@example.com"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               leftIcon={<Mail className="h-4 w-4" />}
               required
+              autoFocus
             />
 
             <div>
@@ -95,6 +97,7 @@ export default function LoginPage() {
                 name="password"
                 id="password"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 leftIcon={<Lock className="h-4 w-4" />}
@@ -116,11 +119,6 @@ export default function LoginPage() {
           <Button type="submit" fullWidth loading={isLoading} className="mt-6">
             Sign in
           </Button>
-
-          <p className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-center text-xs text-ink-500">
-            Credentials: <span className="font-medium text-ink-700">admin@gmail.com</span> /{' '}
-            <span className="font-medium text-ink-700">admin123</span>
-          </p>
         </form>
       </div>
     </div>
