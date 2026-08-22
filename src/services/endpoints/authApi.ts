@@ -108,9 +108,13 @@ export const authApi = api.injectEndpoints({
         body,
       }),
       transformResponse: (res: any) => {
-        const resetToken = res?.data || res?.resetToken || ''
+        const resetToken =
+          typeof res?.data === 'string'
+            ? res.data
+            : (res?.data?.token || res?.resetToken || res?.token || '')
         if (resetToken && typeof localStorage !== 'undefined') {
           localStorage.setItem(RESET_PASSWORD_TOKEN_KEY, resetToken)
+          localStorage.setItem('resettoken', resetToken)
         }
         return {
           resetToken,
@@ -121,7 +125,7 @@ export const authApi = api.injectEndpoints({
 
     resendOtp: builder.mutation<{ success: boolean; message: string }, ResendOtpRequest>({
       query: (body) => ({
-        url: '/auth/forget-password',
+        url: '/auth/resend-otp',
         method: 'POST',
         body,
       }),
@@ -135,7 +139,7 @@ export const authApi = api.injectEndpoints({
       query: (body) => {
         const resetToken =
           typeof localStorage !== 'undefined'
-            ? localStorage.getItem(RESET_PASSWORD_TOKEN_KEY)
+            ? localStorage.getItem(RESET_PASSWORD_TOKEN_KEY) || localStorage.getItem('resettoken')
             : null
         return {
           url: '/auth/reset-password',
@@ -147,6 +151,7 @@ export const authApi = api.injectEndpoints({
       transformResponse: (res: any) => {
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem(RESET_PASSWORD_TOKEN_KEY)
+          localStorage.removeItem('resettoken')
         }
         return {
           success: res?.success ?? true,

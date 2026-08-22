@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Lock, Mail } from 'lucide-react'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Logo } from '@/components/shared/Logo'
@@ -17,6 +17,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('admin@gmail.com')
   const [password, setPassword] = useState('admin123')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? ROUTES.dashboard
@@ -28,8 +29,8 @@ export default function LoginPage() {
       const result = await login({ email, password }).unwrap()
       dispatch(setCredentials(result))
       navigate(from, { replace: true })
-    } catch (err) {
-      const message = (err as { data?: string })?.data ?? 'Unable to sign in. Please try again.'
+    } catch (err: any) {
+      const message = err?.data?.message || err?.data || err?.message || 'Unable to sign in. Please try again.'
       setError(typeof message === 'string' ? message : 'Login failed')
     }
   }
@@ -52,7 +53,7 @@ export default function LoginPage() {
       </div>
 
       {/* Form */}
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center p-6 bg-surface-base">
         <form onSubmit={handleSubmit} className="w-full max-w-sm">
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-ink-900">Welcome back</h2>
@@ -76,16 +77,40 @@ export default function LoginPage() {
               leftIcon={<Mail className="h-4 w-4" />}
               required
             />
-            <Input
-              type="password"
-              name="password"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              leftIcon={<Lock className="h-4 w-4" />}
-              required
-            />
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium text-ink-700">
+                  Password
+                </label>
+                <Link
+                  to={ROUTES.forgotPassword}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                id="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                leftIcon={<Lock className="h-4 w-4" />}
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-ink-400 hover:text-ink-600 focus:outline-none"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                }
+                required
+              />
+            </div>
           </div>
 
           <Button type="submit" fullWidth loading={isLoading} className="mt-6">

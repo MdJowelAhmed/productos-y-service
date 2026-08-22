@@ -4,6 +4,9 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ROUTES } from '@/constants/routes'
 
 import LoginPage from '@/pages/auth/LoginPage'
+import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage'
+import VerifyOtpPage from '@/pages/auth/VerifyOtpPage'
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import UsersPage from '@/pages/users/UsersPage'
 import UserDetailPage from '@/pages/users/UserDetailPage'
@@ -24,6 +27,9 @@ import NotFoundPage from '@/pages/NotFoundPage'
 
 export const router = createBrowserRouter([
   { path: ROUTES.login, element: <LoginPage /> },
+  { path: ROUTES.forgotPassword, element: <ForgotPasswordPage /> },
+  { path: ROUTES.verifyOtp, element: <VerifyOtpPage /> },
+  { path: ROUTES.resetPassword, element: <ResetPasswordPage /> },
   {
     element: <PrivateRoute />,
     children: [

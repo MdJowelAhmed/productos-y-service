@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
-import { ToastContainer } from '@/components/ui/Toast'
 import { useSocketEvents } from '@/hooks/useSocketEvents'
 
 /** App shell: persistent sidebar + topbar with a routed content outlet and global real-time socket events. */
@@ -21,7 +20,6 @@ export function DashboardLayout() {
           <Outlet />
         </main>
       </div>
-      <ToastContainer />
     </div>
   )
 }

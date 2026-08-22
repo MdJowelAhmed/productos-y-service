@@ -1,6 +1,9 @@
 /** Centralized route paths — the single source of truth for navigation. */
 export const ROUTES = {
   login: '/login',
+  forgotPassword: '/forgot-password',
+  verifyOtp: '/verify-otp',
+  resetPassword: '/reset-password',
 
   dashboard: '/',
 
