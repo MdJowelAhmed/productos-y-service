@@ -69,23 +69,11 @@ export const adminsApi = api.injectEndpoints({
       invalidatesTags: ['Admin'],
     }),
 
-    updateAdmin: builder.mutation<Admin, UpdateAdminRequest>({
-      query: ({ id, name, email, password, role }) => {
-        const body: Record<string, any> = { name, email, role: role || 'admin' }
-        if (password) body.password = password
-        return {
-          url: `/users/admins/${id}`,
-          method: 'PATCH',
-          body,
-        }
-      },
-      transformResponse: (response: any) => mapBackendAdminToAdmin(response?.data || response),
-      invalidatesTags: ['Admin'],
-    }),
+
 
     updateAdminStatus: builder.mutation<Admin, { id: ID; status: Admin['status'] }>({
       query: ({ id, status }) => ({
-        url: `/users/admins/${id}`,
+        url: `/users/admin/status/${id}`,
         method: 'PATCH',
         body: { status },
       }),
@@ -107,7 +95,6 @@ export const adminsApi = api.injectEndpoints({
 export const {
   useGetAdminsQuery,
   useCreateAdminMutation,
-  useUpdateAdminMutation,
   useUpdateAdminStatusMutation,
   useDeleteAdminMutation,
 } = adminsApi
