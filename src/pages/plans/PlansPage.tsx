@@ -19,32 +19,34 @@ import {
   useDeletePlanMutation,
   type PlanInput,
 } from '@/services/endpoints/billingApi'
+import { formatDurationLabel, formatPackageTypeLabel } from '@/lib/format'
 import { formatCurrency, cn } from '@/lib/utils'
 import type { Plan } from '@/types/models'
 import type { Option } from '@/types/common.types'
 
 const DURATION_OPTIONS: Option[] = [
-  { label: '7 Days (seven_days)', value: 'seven_days' },
-  { label: '1 Month (one_month)', value: 'one_month' },
-  { label: '3 Months (three_month)', value: 'three_month' },
-  { label: '6 Months (six_month)', value: 'six_month' },
-  { label: '1 Year (one_year)', value: 'one_year' },
+  { label: '7 Days', value: 'seven_days' },
+  { label: '1 Month', value: 'one_month' },
+  { label: '3 Months', value: 'three_month' },
+  { label: '6 Months', value: 'six_month' },
+  { label: '1 Year', value: 'one_year' },
 ]
 
 const PACKAGE_TYPE_OPTIONS: Option[] = [
-  { label: 'Store Creation (store_creation)', value: 'store_creation' },
-  { label: 'Post Add (post_add)', value: 'post_add' },
+  { label: 'Store Creation', value: 'store_creation' },
+  { label: 'Store Growth', value: 'store_growth' },
+  { label: 'Post Add', value: 'post_add' },
 ]
 
 const emptyPackage: PlanInput = {
   name: '',
-  price: 29.99,
+  price: '' as any,
   duration: 'seven_days',
   packageType: 'store_creation',
-  listingLimit: 100,
+  listingLimit: '' as any,
   isUnlimitedListings: false,
   trialEnabled: false,
-  trialPeriodDays: 30,
+  trialPeriodDays: 0,
   features: [],
   status: 'active',
   isActive: true,
@@ -132,16 +134,7 @@ function PackageCard({
 }) {
   const isActive = plan.status === 'active' || plan.isActive
 
-  const durationLabels: Record<string, string> = {
-    seven_days: '7 Days',
-    one_month: '1 Month',
-    three_month: '3 Months',
-    six_month: '6 Months',
-    one_year: '1 Year',
-  }
-
-  const durationText =
-    durationLabels[plan.duration || ''] || plan.interval || plan.duration || 'period'
+  const durationText = formatDurationLabel(plan.duration || plan.billingCycle || plan.interval)
 
   return (
     <Card className={cn('relative', plan.popular && 'ring-2 ring-brand-600')}>
@@ -166,7 +159,7 @@ function PackageCard({
 
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Badge tone={plan.packageType === 'store_creation' ? 'purple' : 'blue'}>
-            {plan.packageType === 'store_creation' ? 'Store Creation' : 'Post Add'}
+            {formatPackageTypeLabel(plan.packageType)}
           </Badge>
           <Badge tone="gray">
             {plan.isUnlimitedListings || plan.listingLimit === null
@@ -233,13 +226,13 @@ function PackageFormModal({
     if (plan) {
       setForm({
         name: plan.name || '',
-        price: plan.price ?? 0,
+        price: plan.price ?? ('' as any),
         duration: plan.duration || 'seven_days',
         packageType: plan.packageType || 'store_creation',
-        listingLimit: plan.listingLimit ?? 100,
+        listingLimit: plan.listingLimit ?? ('' as any),
         isUnlimitedListings: Boolean(plan.isUnlimitedListings || plan.listingLimit === null),
         trialEnabled: Boolean(plan.trialEnabled),
-        trialPeriodDays: plan.trialPeriodDays ?? 30,
+        trialPeriodDays: plan.trialPeriodDays ?? 0,
         features: plan.features || [],
         status: plan.status || (plan.isActive ? 'active' : 'inactive'),
         isActive: plan.status === 'active' || plan.isActive,
@@ -255,12 +248,14 @@ function PackageFormModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    const rawPrice = (form.price as unknown)
+    const rawLimit = (form.listingLimit as unknown)
     const payload: PlanInput = {
       name: form.name,
-      price: Number(form.price),
+      price: rawPrice !== '' && rawPrice !== undefined ? Number(rawPrice) : 0,
       duration: form.duration || 'seven_days',
       packageType: form.packageType || 'store_creation',
-      listingLimit: unlimited ? 0 : Number(form.listingLimit ?? 0),
+      listingLimit: unlimited ? 0 : rawLimit !== '' && rawLimit !== undefined ? Number(rawLimit) : 0,
       isUnlimitedListings: unlimited,
       trialEnabled: Boolean(form.trialEnabled),
       trialPeriodDays: form.trialEnabled ? Number(form.trialPeriodDays ?? 0) : 0,
@@ -311,8 +306,14 @@ function PackageFormModal({
             type="number"
             step="0.01"
             min={0}
-            value={form.price}
-            onChange={(e) => setForm((f: PlanInput) => ({ ...f, price: Number(e.target.value) }))}
+            value={form.price ?? ''}
+            onChange={(e) =>
+              setForm((f: PlanInput) => ({
+                ...f,
+                price: e.target.value === '' ? ('' as any) : Number(e.target.value),
+              }))
+            }
+            placeholder="e.g. 29.99"
             required
           />
         </div>
@@ -338,8 +339,14 @@ function PackageFormModal({
             type="number"
             min={0}
             disabled={unlimited}
-            value={unlimited ? '' : (form.listingLimit ?? 0)}
-            onChange={(e) => setForm((f: PlanInput) => ({ ...f, listingLimit: Number(e.target.value) }))}
+            value={unlimited ? '' : (form.listingLimit ?? '')}
+            onChange={(e) =>
+              setForm((f: PlanInput) => ({
+                ...f,
+                listingLimit: e.target.value === '' ? ('' as any) : Number(e.target.value),
+              }))
+            }
+            placeholder="e.g. 100"
           />
           <div className="mb-2.5 flex items-center gap-2">
             <Switch checked={unlimited} onChange={setUnlimited} label="Unlimited Listings" />
