@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button'
 import { Badge, type BadgeTone } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
 import { Switch } from '@/components/ui/Switch'
 import { Avatar } from '@/components/shared/Avatar'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
@@ -19,14 +18,6 @@ import {
   useDeleteAdminMutation,
 } from '@/services/endpoints/adminsApi'
 import type { Admin } from '@/types/models'
-import type { Option } from '@/types/common.types'
-
-const ROLE_OPTIONS: Option<string>[] = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'Super Admin', value: 'super_admin' },
-  { label: 'Moderator', value: 'moderator' },
-  { label: 'Support', value: 'support' },
-]
 
 const roleTone: Record<string, BadgeTone> = {
   super_admin: 'purple',
@@ -76,7 +67,7 @@ export default function AdminsPage() {
         name: form.name,
         email: form.email,
         password: form.password,
-        role: form.role,
+        role: 'admin',
       }).unwrap()
       toast.success(`Admin "${form.name}" created successfully!`)
       setCreatingOpen(false)
@@ -227,11 +218,11 @@ export default function AdminsPage() {
             placeholder="Enter password"
             required
           />
-          <Select
+          <Input
             label="Role"
-            options={ROLE_OPTIONS}
-            value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+            value="Admin"
+            readOnly
+            disabled
           />
         </form>
       </Modal>
