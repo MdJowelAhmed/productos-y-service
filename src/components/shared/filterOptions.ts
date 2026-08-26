@@ -43,7 +43,7 @@ export const REPORT_STATUS_OPTIONS: Option[] = [
 export const TRANSACTION_STATUS_OPTIONS: Option[] = [
   { label: 'All statuses', value: 'all' },
   { label: 'Paid', value: 'paid' },
-  { label: 'Pending', value: 'pending' },
+  // { label: 'Pending', value: 'pending' },
   { label: 'Failed', value: 'failed' },
   { label: 'Refunded', value: 'refunded' },
 ]
