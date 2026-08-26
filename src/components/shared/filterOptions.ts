@@ -15,8 +15,8 @@ export const USER_STATUS_OPTIONS: Option[] = [
   { label: 'All users', value: 'all' },
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Banned', value: 'suspended' },
+  // { label: 'Pending', value: 'pending' },
+  // { label: 'Banned', value: 'suspended' },
 ]
 
 export const SUBSCRIPTION_STATUS_OPTIONS: Option[] = [

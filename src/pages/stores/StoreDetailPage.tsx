@@ -57,33 +57,53 @@ export default function StoreDetailPage() {
   }
 
   const productColumns: Column<Product>[] = [
-    { key: 'title', header: 'Product', render: (p) => <span className="font-medium text-ink-900">{p.title}</span> },
-    { key: 'category', header: 'Category', render: (p) => <Badge tone="blue">{p.category}</Badge> },
-    { key: 'price', header: 'Price', align: 'right', render: (p) => formatCurrency(p.price, p.currency) },
+    { key: 'title', header: 'Product', render: (p: any) => <span className="font-medium text-ink-900">{p.title || p.name}</span> },
     {
-      key: 'stock',
-      header: 'Stock',
-      align: 'right',
-      render: (p) => <span className={p.stock === 0 ? 'text-red-600' : 'text-ink-700'}>{p.stock}</span>,
+      key: 'category',
+      header: 'Category',
+      render: (p: any) => {
+        const cat = typeof p.categoryId === 'object' ? p.categoryId?.name : (p.category || p.categoryId || categoryName || 'General')
+        return <Badge tone="blue">{cat}</Badge>
+      },
     },
-    { key: 'status', header: 'Status', render: (p) => <StatusBadge status={p.status} /> },
+    {
+      key: 'price',
+      header: 'Price',
+      align: 'right',
+      render: (p: any) => {
+        const val = p.activePrice ?? p.price ?? p.originalPrice ?? 0
+        return formatCurrency(val, p.currency)
+      },
+    },
+    { key: 'status', header: 'Status', render: (p: any) => <StatusBadge status={p.status || 'active'} /> },
   ]
 
   const serviceColumns: Column<Service>[] = [
-    { key: 'title', header: 'Service', render: (s) => <span className="font-medium text-ink-900">{s.title}</span> },
-    { key: 'category', header: 'Category', render: (s) => <Badge tone="purple">{s.category}</Badge> },
+    { key: 'title', header: 'Service', render: (s: any) => <span className="font-medium text-ink-900">{s.title || s.name}</span> },
+    {
+      key: 'category',
+      header: 'Category',
+      render: (s: any) => {
+        const cat = typeof s.categoryId === 'object' ? s.categoryId?.name : (s.category || s.categoryId || categoryName || 'General')
+        return <Badge tone="purple">{cat}</Badge>
+      },
+    },
     {
       key: 'price',
       header: 'Rate',
       align: 'right',
-      render: (s) => (
-        <span>
-          {formatCurrency(s.price, s.currency)}
-          <span className="text-ink-400">/{s.pricingUnit}</span>
-        </span>
-      ),
+      render: (s: any) => {
+        const val = s.activePrice ?? s.price ?? s.originalPrice ?? 0
+        const unit = s.pricingUnit || 'unit'
+        return (
+          <span>
+            {formatCurrency(val, s.currency)}
+            <span className="text-ink-400">/{unit}</span>
+          </span>
+        )
+      },
     },
-    { key: 'status', header: 'Status', render: (s) => <StatusBadge status={s.status} /> },
+    { key: 'status', header: 'Status', render: (s: any) => <StatusBadge status={s.status || 'active'} /> },
   ]
 
   return (
@@ -169,7 +189,7 @@ export default function StoreDetailPage() {
             <Detail label="WhatsApp" value={store.whatsapp || '—'} />
             <Detail label="Address" value={store.streetAddress ? `${store.streetAddress}, ${store.city || ''}` : '—'} />
             <Detail label="Subscription plan" value={store.plan || store.planName || 'None'} />
-            <Detail label="Listings count" value={String(store.listingCount || (isProductStore ? products.length : services.length))} />
+            <Detail label="Listings count" value={String(store.listingCount || store.listings || (isProductStore ? products.length : services.length))} />
             <Detail label="Visitor count" value={String(store.visitorCount ?? 0)} />
             {store.description && (
               <div className="sm:col-span-2">
@@ -182,7 +202,7 @@ export default function StoreDetailPage() {
       </div>
 
       {/* Identity Verification & Legal Documents Card */}
-      {(store.documentType || store.businessLicenseNumber || store.tinNumber || store.documentFrontUrl || store.tradeLicenseUrl) && (
+      {(store.documentType || store.businessLicenseNumber || store.tinNumber || store.documentFrontUrl || store.documentFront || store.tradeLicenseUrl || store.tradeLicense) && (
         <Card className="mt-4">
           <CardHeader
             title="Identity Verification & Legal Documents"
@@ -196,14 +216,14 @@ export default function StoreDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {store.documentFrontUrl && (
-                <DocumentPreview label="Document Front" url={store.documentFrontUrl} />
+              {(store.documentFrontUrl || store.documentFront) && (
+                <DocumentPreview label="Document Front" url={store.documentFrontUrl || store.documentFront} />
               )}
-              {store.documentBackUrl && (
-                <DocumentPreview label="Document Back" url={store.documentBackUrl} />
+              {(store.documentBackUrl || store.documentBack) && (
+                <DocumentPreview label="Document Back" url={store.documentBackUrl || store.documentBack} />
               )}
-              {store.tradeLicenseUrl && (
-                <DocumentPreview label="Trade License" url={store.tradeLicenseUrl} />
+              {(store.tradeLicenseUrl || store.tradeLicense) && (
+                <DocumentPreview label="Trade License" url={store.tradeLicenseUrl || store.tradeLicense} />
               )}
             </div>
           </CardBody>
@@ -214,20 +234,20 @@ export default function StoreDetailPage() {
       <Card className="mt-4">
         <CardHeader
           title={isProductStore ? 'Products' : 'Services'}
-          description={`Listings published by ${store.name}.`}
+          description={`Listings published by ${storeName}.`}
         />
         {isProductStore ? (
           <Table
             columns={productColumns}
             rows={products}
-            rowKey={(p) => p.id}
+            rowKey={(p: any) => p.id || p._id}
             emptyTitle="No products found"
           />
         ) : (
           <Table
             columns={serviceColumns}
             rows={services}
-            rowKey={(s) => s.id}
+            rowKey={(s: any) => s.id || s._id}
             emptyTitle="No services found"
           />
         )}
