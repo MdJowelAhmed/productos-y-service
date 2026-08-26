@@ -33,15 +33,7 @@ export default function PagesPage() {
       header: 'Page',
       render: (p) => <span className="font-medium text-ink-900">{p.title}</span>,
     },
-    {
-      key: 'type',
-      header: 'Type Code',
-      render: (p) => (
-        <span className="font-mono text-xs text-ink-500 bg-ink-50 px-2 py-0.5 rounded border border-ink-100">
-          {p.type || p.id}
-        </span>
-      ),
-    },
+
     {
       key: 'status',
       header: 'Status',
