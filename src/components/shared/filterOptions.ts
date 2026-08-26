@@ -23,7 +23,6 @@ export const SUBSCRIPTION_STATUS_OPTIONS: Option[] = [
   { label: 'All statuses', value: 'all' },
   { label: 'Active', value: 'active' },
   { label: 'Trialing', value: 'trialing' },
-  { label: 'Past due', value: 'past_due' },
   { label: 'Canceled', value: 'canceled' },
   { label: 'Expired', value: 'expired' },
 ]

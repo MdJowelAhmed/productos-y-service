@@ -20,6 +20,14 @@ import { formatDate } from '@/lib/format'
 import type { Subscription } from '@/types/models'
 import type { Option } from '@/types/common.types'
 
+function capitalizeWords(str?: string): string {
+  if (!str) return ''
+  return str
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 export default function SubscriptionsPage() {
   const { search, setSearch, status, setStatus, page, setPage, params } = useListParams()
   const [plan, setPlan] = useState('all')
@@ -31,7 +39,7 @@ export default function SubscriptionsPage() {
 
   const planOptions: Option[] = [
     { label: 'All plans', value: 'all' },
-    ...(plans ?? []).map((p) => ({ label: p.name, value: p.id || p.name })),
+    ...(plans ?? []).map((p) => ({ label: capitalizeWords(p.name), value: p.id || p.name })),
   ]
 
   const columns: Column<Subscription>[] = [
@@ -67,7 +75,9 @@ export default function SubscriptionsPage() {
       header: 'Plan / Package',
       render: (s) => (
         <div>
-          <p className="font-medium text-ink-900">{s.packageId?.name || s.planName}</p>
+          <p className="font-medium text-ink-900">
+            {capitalizeWords(s.packageId?.name || s.planName || '')}
+          </p>
           {(s.packageType || s.packageId?.packageType) && (
             <span className="inline-block text-[11px] font-medium text-ink-500 capitalize">
               {(s.packageType || s.packageId?.packageType)?.replace('_', ' ')}
@@ -247,7 +257,7 @@ export default function SubscriptionsPage() {
                 <div>
                   <span className="text-ink-400">Package Name:</span>{' '}
                   <span className="font-medium text-ink-900">
-                    {selectedSub.packageId?.name || selectedSub.planName}
+                    {capitalizeWords(selectedSub.packageId?.name || selectedSub.planName || '')}
                   </span>
                 </div>
                 <div>
@@ -273,7 +283,9 @@ export default function SubscriptionsPage() {
                 <div>
                   <span className="text-ink-400">Created At:</span>{' '}
                   <span className="font-medium text-ink-900">
-                    {selectedSub.createdAt ? formatDate(selectedSub.createdAt) : 'N/A'}
+                    {selectedSub.createdAt || selectedSub.startDate
+                      ? formatDate((selectedSub.createdAt || selectedSub.startDate)!)
+                      : 'N/A'}
                   </span>
                 </div>
                 <div>

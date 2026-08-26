@@ -62,8 +62,9 @@ export function mapBackendSubscriptionToSubscription(raw: any): Subscription {
     currency: 'USD',
     billingCycle: rawPackage?.duration || raw.billingCycle || 'monthly',
     status,
-    startDate: raw.createdAt || new Date().toISOString(),
-    currentPeriodEnd: raw.expiresAt || new Date().toISOString(),
+    createdAt: raw.createdAt || raw.startDate,
+    startDate: raw.startDate || raw.createdAt || new Date().toISOString(),
+    expiresAt: raw.expiresAt || raw.currentPeriodEnd,
     stripeSubscriptionId: raw.stripeSubscriptionId,
     userId: rawUser
       ? {
