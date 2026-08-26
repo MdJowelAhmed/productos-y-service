@@ -55,3 +55,14 @@ export const SUPPORT_STATUS_OPTIONS: Option[] = [
   { label: 'Pending', value: 'pending' },
   { label: 'Resolved', value: 'resolved' },
 ]
+
+export const YEAR_OPTIONS: Option[] = (() => {
+  const currentYear = new Date().getFullYear()
+  const years: Option[] = []
+  for (let i = 0; i < 5; i++) {
+    const y = String(currentYear - i)
+    years.push({ label: y, value: y })
+  }
+  return years
+})()
+

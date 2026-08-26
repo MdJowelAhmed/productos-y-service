@@ -8,7 +8,7 @@ describe('mapBackendSubscriptionToSubscription', () => {
       stripeSubscriptionId: 'sub_1U4ZnfQOpYWE7pDH6QlTei8B',
       amountPaid: 29.99,
       createdAt: '2026-08-15T05:06:34.781Z',
-      expiresAt: '2026-08-22T05:06:31.000Z',
+      expiresAt: '2026-09-22T05:06:31.000Z',
       isDeleted: false,
       packageId: {
         _id: '6a7ff377c24d0046a564c737',

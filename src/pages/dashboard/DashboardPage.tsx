@@ -1,14 +1,17 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CreditCard, DollarSign, Store, Users } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { StatCard } from '@/components/shared/StatCard'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Select } from '@/components/ui/Select'
 import { LoadingState } from '@/components/ui/Spinner'
 import { Table, type Column } from '@/components/ui/Table'
 import { SubscriptionStatusBadge, StoreTypeBadge } from '@/components/shared/StatusBadge'
 import { RevenueChart } from '@/components/dashboard/components/RevenueChart'
 import { StoreTypeChart } from '@/components/dashboard/components/StoreTypeChart'
+import { YEAR_OPTIONS } from '@/components/shared/filterOptions'
 import { useGetDashboardOverviewQuery } from '@/services/endpoints/statsApi'
 import { useGetSubscriptionsQuery } from '@/services/endpoints/billingApi'
 import { formatCurrency, formatNumber } from '@/lib/utils'
@@ -17,7 +20,8 @@ import type { Subscription } from '@/types/models'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const { data: overview, isLoading: overviewLoading } = useGetDashboardOverviewQuery()
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString())
+  const { data: overview, isLoading: overviewLoading } = useGetDashboardOverviewQuery({ year: selectedYear })
   const { data: subs } = useGetSubscriptionsQuery({ page: 1 })
 
   const cards = overview?.cards
@@ -67,7 +71,20 @@ export default function DashboardPage() {
       {/* Charts */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader title="Revenue" description="Subscription revenue over the last 12 months" />
+          <CardHeader
+            title="Revenue"
+            description="Subscription revenue over the last 12 months"
+            action={
+              <div className="w-28">
+                <Select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  options={YEAR_OPTIONS}
+                  className="h-9 py-1 text-xs"
+                />
+              </div>
+            }
+          />
           <CardBody>
             {overviewLoading || !overview ? <LoadingState /> : <RevenueChart data={revenueChart} />}
           </CardBody>
