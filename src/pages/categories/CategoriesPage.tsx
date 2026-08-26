@@ -69,7 +69,13 @@ export default function CategoriesPage() {
       ),
     },
     { key: 'type', header: 'Type', render: (c) => <StoreTypeBadge type={c.type} /> },
-    { key: 'count', header: 'Listings', align: 'right', render: (c) => c.listingCount },
+    {
+      key: 'count',
+      header: 'Listings',
+      align: 'right',
+      render: (c: any) =>
+        c.listingCount ?? c.listingsCount ?? c.listings ?? c.totalListings ?? c.count ?? 0,
+    },
     {
       key: 'active',
       header: 'Active',

@@ -10,6 +10,16 @@ export interface CategoryInput {
 }
 
 export function mapBackendCategory(raw: any): Category {
+  const listingCount =
+    raw.listingCount ??
+    raw.listingsCount ??
+    raw.listings ??
+    raw.totalListings ??
+    raw.productCount ??
+    raw.serviceCount ??
+    raw.count ??
+    0
+
   return {
     id: String(raw._id || raw.id || ''),
     _id: raw._id,
@@ -19,7 +29,7 @@ export function mapBackendCategory(raw: any): Category {
     status: raw.status || 'active',
     isActive: raw.status ? raw.status === 'active' : raw.isActive ?? true,
     isDeleted: Boolean(raw.isDeleted),
-    listingCount: raw.listingCount ?? 0,
+    listingCount,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   }
