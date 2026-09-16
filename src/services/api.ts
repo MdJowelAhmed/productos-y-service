@@ -34,6 +34,7 @@ export const api = createApi({
     'AuditLog',
     'SupportTicket',
     'SupportThread',
+    'CityAdConfig',
   ],
   endpoints: () => ({}),
 })

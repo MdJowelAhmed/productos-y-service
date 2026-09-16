@@ -17,6 +17,7 @@ import PlansPage from '@/pages/plans/PlansPage'
 import TransactionsPage from '@/pages/billing/TransactionsPage'
 import CategoriesPage from '@/pages/categories/CategoriesPage'
 import BannersPage from '@/pages/cms/BannersPage'
+import AdsConfigurationPage from '@/pages/ads/AdsConfigurationPage'
 import PagesPage from '@/pages/cms/PagesPage'
 import FaqsPage from '@/pages/cms/FaqsPage'
 import SupportPage from '@/pages/support/SupportPage'
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: ROUTES.transactions, element: <TransactionsPage /> },
 
           { path: ROUTES.banners, element: <BannersPage /> },
+          { path: ROUTES.adsConfiguration, element: <AdsConfigurationPage /> },
           { path: ROUTES.pages, element: <PagesPage /> },
           { path: ROUTES.faqs, element: <FaqsPage /> },
 

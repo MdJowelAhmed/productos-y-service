@@ -337,6 +337,35 @@ export interface Admin {
   updatedAt?: ISODate
 }
 
+/* ---------------------- Ads / City slots -------------------------- */
+
+export interface FeaturedPositionPrice {
+  position: number
+  price: number
+}
+
+/** Per-city ad channel slot configuration (featured + banner). */
+export interface CityAdConfiguration {
+  id: ID
+  _id?: ID
+  country: string
+  countryCode: string
+  city: string
+  latitude: number
+  longitude: number
+  bannerCapacity?: number
+  featuredCapacity: number
+  bannerEnabled?: boolean
+  featuredEnabled: boolean
+  featuredPositionPricing: FeaturedPositionPrice[]
+  defaultFeaturedImage?: string
+  status: EntityStatus | string
+  lockVersion?: number
+  isDeleted?: boolean
+  createdAt?: ISODate
+  updatedAt?: ISODate
+}
+
 /* ------------------------------ CMS ------------------------------- */
 
 export type BannerPlacement = 'home_top' | 'explore' | 'product_store' | 'service_store'

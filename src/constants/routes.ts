@@ -24,6 +24,7 @@ export const ROUTES = {
   banners: '/cms/banners',
   pages: '/cms/pages',
   faqs: '/cms/faqs',
+  adsConfiguration: '/ads-configuration',
 
   // Engagement
   support: '/support',
