@@ -164,7 +164,7 @@ export const billingApi = api.injectEndpoints({
         const queryParams: Record<string, any> = {}
         if (params?.page) queryParams.page = params.page
         if (params?.pageSize) queryParams.limit = params.pageSize
-        if (params?.search && params.search.trim()) queryParams.search = params.search.trim()
+        if (params?.search && params.search.trim()) queryParams.searchTerm = params.search.trim()
         if (params?.status && params.status !== 'all') queryParams.status = params.status
         if (params?.plan && params.plan !== 'all') queryParams.packageId = params.plan
         return {
