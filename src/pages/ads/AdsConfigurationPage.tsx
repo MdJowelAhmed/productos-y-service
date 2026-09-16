@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Image as ImageIcon, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { Eye, Image as ImageIcon, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Table, type Column } from '@/components/ui/Table'
@@ -27,6 +27,7 @@ import {
   getCountries,
   makeCustomCity,
 } from '@/lib/locations'
+import { formatDate } from '@/lib/format'
 import { formatCurrency } from '@/lib/utils'
 import {
   useGetCityAdConfigsQuery,
@@ -64,6 +65,7 @@ export default function AdsConfigurationPage() {
 
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<CityAdConfiguration | null>(null)
+  const [viewing, setViewing] = useState<CityAdConfiguration | null>(null)
   const [toDelete, setToDelete] = useState<CityAdConfiguration | null>(null)
 
   const columns: Column<CityAdConfiguration>[] = [
@@ -118,6 +120,9 @@ export default function AdsConfigurationPage() {
       align: 'right',
       render: (row) => (
         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+          <Button size="sm" variant="outline" onClick={() => setViewing(row)}>
+            <Eye className="h-3.5 w-3.5" /> View
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setEditing(row)}>
             <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
@@ -176,6 +181,7 @@ export default function AdsConfigurationPage() {
           rows={data?.items ?? []}
           rowKey={(row) => row.id}
           loading={isFetching}
+          onRowClick={(row) => setViewing(row)}
           emptyTitle="No city ad configurations"
           emptyDescription="Create a configuration to set featured ad slots for a city."
         />
@@ -184,6 +190,16 @@ export default function AdsConfigurationPage() {
           <Pagination page={page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
         )}
       </Card>
+
+      <CityAdConfigDetailsModal
+        config={viewing}
+        onClose={() => setViewing(null)}
+        onEdit={() => {
+          if (!viewing) return
+          setEditing(viewing)
+          setViewing(null)
+        }}
+      />
 
       <CityAdConfigFormModal
         open={creating || Boolean(editing)}
@@ -238,6 +254,120 @@ function ChannelSummary({
       </div>
       {extra && <p className="mt-0.5 text-xs text-ink-500">{extra}</p>}
     </div>
+  )
+}
+
+function DetailItem({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs text-ink-400">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-ink-900">{value || '—'}</p>
+    </div>
+  )
+}
+
+function CityAdConfigDetailsModal({
+  config,
+  onClose,
+  onEdit,
+}: {
+  config: CityAdConfiguration | null
+  onClose: () => void
+  onEdit: () => void
+}) {
+  const imageSrc = imageUrl(config?.defaultFeaturedImage)
+  const pricing = [...(config?.featuredPositionPricing ?? [])].sort(
+    (a, b) => Number(a.position) - Number(b.position),
+  )
+
+  return (
+    <Modal
+      open={Boolean(config)}
+      onClose={onClose}
+      title={config ? `${config.city} · Ads configuration` : 'Ads configuration'}
+      description="Featured slot capacity and position pricing for this city."
+      size="lg"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+          <Button onClick={onEdit}>
+            <Pencil className="h-4 w-4" /> Edit
+          </Button>
+        </>
+      }
+    >
+      {config && (
+        <div className="space-y-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="h-28 w-full overflow-hidden rounded-lg bg-ink-100 sm:h-28 sm:w-40 shrink-0">
+              {imageSrc ? (
+                <img src={imageSrc} alt={config.city} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-ink-400">
+                  <ImageIcon className="h-6 w-6" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-semibold text-ink-900">{config.city}</h3>
+                <StatusBadge status={(config.status as EntityStatus) || 'active'} />
+                <Badge tone={config.featuredEnabled ? 'green' : 'gray'}>
+                  Featured {config.featuredEnabled ? 'on' : 'off'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <DetailItem label="Country" value={config.country} />
+                <DetailItem label="Featured capacity" value={`${config.featuredCapacity} slots`} />
+                <DetailItem
+                  label="Created"
+                  value={config.createdAt ? formatDate(config.createdAt) : '—'}
+                />
+                <DetailItem
+                  label="Updated"
+                  value={config.updatedAt ? formatDate(config.updatedAt) : '—'}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium text-ink-800">Featured position pricing</p>
+              <span className="text-xs text-ink-500">{pricing.length} positions</span>
+            </div>
+            {pricing.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-ink-200 px-3 py-6 text-center text-sm text-ink-500">
+                No position prices set for this city.
+              </p>
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-ink-100">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-ink-100 bg-ink-50 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
+                      <th className="px-4 py-2.5">Position</th>
+                      <th className="px-4 py-2.5 text-right">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pricing.map((item) => (
+                      <tr key={item.position} className="border-b border-ink-50 last:border-0">
+                        <td className="px-4 py-2.5 font-medium text-ink-800">Position {item.position}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-ink-900">
+                          {formatCurrency(Number(item.price) || 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
   )
 }
 
@@ -477,8 +607,8 @@ function CityAdConfigFormModal({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-ink-100 p-4">
             <p className="mb-3 text-sm font-medium text-ink-800">Featured channel</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex items-center gap-2">
                 <p className="mb-1.5 text-sm font-medium text-ink-700">Enabled</p>
                 <label className="flex h-10 items-center gap-2 text-sm text-ink-700">
                   <Switch
@@ -525,15 +655,17 @@ function CityAdConfigFormModal({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-ink-700">
-          <Switch
-            checked={status === 'active'}
-            onChange={(active) => setStatus(active ? 'active' : 'inactive')}
-            label="Active"
-          />
-          Active
-        </label>
-
+        {config && (
+          <div>
+            <label className="flex items-center gap-2 text-sm text-ink-700">
+              <Switch
+                checked={status === 'active'}
+                onChange={(active) => setStatus(active ? 'active' : 'inactive')}
+                label="Active"
+              />
+            </label>
+          </div>
+        )}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-medium text-ink-800">Featured position pricing</p>
