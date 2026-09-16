@@ -95,7 +95,7 @@ export const cityAdConfigApi = api.injectEndpoints({
         const queryParams: Record<string, unknown> = {}
         if (params?.page) queryParams.page = params.page
         if (params?.pageSize) queryParams.limit = params.pageSize
-        if (params?.search && params.search.trim()) queryParams.search = params.search.trim()
+        if (params?.search && params.search.trim()) queryParams.searchTerm = params.search.trim()
         if (params?.status && params.status !== 'all') queryParams.status = params.status
         return {
           url: '/city-ad-configurations/admin',
