@@ -64,8 +64,6 @@ describe('buildCityAdConfigFormData', () => {
       featuredCapacity: 5,
       featuredEnabled: true,
       featuredPositionPricing: [{ position: 1, price: 100 }],
-      bannerCapacity: 30,
-      bannerEnabled: true,
       status: 'active',
       defaultFeaturedImageFile: file,
     })
@@ -80,8 +78,6 @@ describe('buildCityAdConfigFormData', () => {
         featuredCapacity: 5,
         featuredEnabled: true,
         featuredPositionPricing: [{ position: 1, price: 100 }],
-        bannerCapacity: 30,
-        bannerEnabled: true,
         status: 'active',
       }),
     )

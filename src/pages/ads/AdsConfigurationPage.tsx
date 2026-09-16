@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Image as ImageIcon, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -14,10 +14,19 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { SearchInput } from '@/components/shared/SearchInput'
 import { TableToolbar } from '@/components/shared/TableToolbar'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { GoogleLocationMap } from '@/components/shared/GoogleLocationMap'
 import { imageUrl } from '@/components/shared/getImageUrl'
 import { toast } from '@/components/ui/Toast'
 import { useListParams } from '@/hooks/useListParams'
 import { PAGE_SIZE } from '@/lib/constants'
+import {
+  findCity,
+  findCountry,
+  getCitiesByCountry,
+  getCitySelectOptions,
+  getCountries,
+  makeCustomCity,
+} from '@/lib/locations'
 import { formatCurrency } from '@/lib/utils'
 import {
   useGetCityAdConfigsQuery,
@@ -34,6 +43,11 @@ const STATUS_OPTIONS: Option[] = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
 ]
+
+const COUNTRY_OPTIONS: Option[] = getCountries().map((country) => ({
+  label: country.name,
+  value: country.isoCode,
+}))
 
 function syncPricing(capacity: number, existing: FeaturedPositionPrice[] = []): FeaturedPositionPrice[] {
   const n = Math.max(0, Math.floor(Number(capacity) || 0))
@@ -61,10 +75,7 @@ export default function AdsConfigurationPage() {
           <CityImageThumb src={row.defaultFeaturedImage} alt={row.city} />
           <div>
             <p className="font-medium text-ink-900">{row.city}</p>
-            <p className="text-xs text-ink-500">
-              {row.country}
-              {row.countryCode ? ` · ${row.countryCode}` : ''}
-            </p>
+            <p className="text-xs text-ink-500">{row.country}</p>
           </div>
         </div>
       ),
@@ -82,13 +93,6 @@ export default function AdsConfigurationPage() {
               : 'No pricing'
           }
         />
-      ),
-    },
-    {
-      key: 'banner',
-      header: 'Banner channel',
-      render: (row) => (
-        <ChannelSummary enabled={Boolean(row.bannerEnabled)} capacity={row.bannerCapacity ?? 0} />
       ),
     },
     {
@@ -146,7 +150,7 @@ export default function AdsConfigurationPage() {
     <div>
       <PageHeader
         title="Ads Configuration"
-        description="Manage city-wise featured and banner ad channels, slot capacity, and position pricing."
+        description="Manage city-wise featured ad channels, slot capacity, and position pricing."
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus className="h-4 w-4" /> New city config
@@ -173,7 +177,7 @@ export default function AdsConfigurationPage() {
           rowKey={(row) => row.id}
           loading={isFetching}
           emptyTitle="No city ad configurations"
-          emptyDescription="Create a configuration to set featured and banner ad slots for a city."
+          emptyDescription="Create a configuration to set featured ad slots for a city."
         />
 
         {data && (
@@ -193,7 +197,7 @@ export default function AdsConfigurationPage() {
       <ConfirmDialog
         open={Boolean(toDelete)}
         title={`Delete “${toDelete?.city}” ads configuration?`}
-        description="This removes the city’s featured and banner ad channel settings."
+        description="This removes the city’s featured ad channel settings."
         confirmLabel="Delete configuration"
         tone="danger"
         loading={deleting}
@@ -241,12 +245,11 @@ const emptyForm = {
   country: 'Bangladesh',
   countryCode: 'BD',
   city: '',
-  latitude: '23.8103',
-  longitude: '90.4125',
+  cityKey: '',
+  latitude: '',
+  longitude: '',
   featuredCapacity: '5',
   featuredEnabled: true,
-  bannerCapacity: '0',
-  bannerEnabled: false,
   status: 'active',
   featuredPositionPricing: syncPricing(5),
 }
@@ -266,30 +269,56 @@ function CityAdConfigFormModal({
   const [country, setCountry] = useState(emptyForm.country)
   const [countryCode, setCountryCode] = useState(emptyForm.countryCode)
   const [city, setCity] = useState(emptyForm.city)
+  const [cityKey, setCityKey] = useState(emptyForm.cityKey)
   const [latitude, setLatitude] = useState(emptyForm.latitude)
   const [longitude, setLongitude] = useState(emptyForm.longitude)
   const [featuredCapacity, setFeaturedCapacity] = useState(emptyForm.featuredCapacity)
   const [featuredEnabled, setFeaturedEnabled] = useState(emptyForm.featuredEnabled)
-  const [bannerCapacity, setBannerCapacity] = useState(emptyForm.bannerCapacity)
-  const [bannerEnabled, setBannerEnabled] = useState(emptyForm.bannerEnabled)
   const [status, setStatus] = useState(emptyForm.status)
   const [pricing, setPricing] = useState<FeaturedPositionPrice[]>(emptyForm.featuredPositionPricing)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState('')
+  const [locationReady, setLocationReady] = useState(false)
+
+  const cities = useMemo(() => {
+    const list = getCitiesByCountry(countryCode)
+    const hasSelected =
+      Boolean(cityKey) &&
+      list.some((item) => item.key === cityKey || item.name.toLowerCase() === city.toLowerCase())
+    if (city && !hasSelected) {
+      return [makeCustomCity(city, latitude || 0, longitude || 0), ...list]
+    }
+    return list
+  }, [countryCode, city, cityKey, latitude, longitude])
+
+  const cityOptions = useMemo(() => getCitySelectOptions(cities), [cities])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setLocationReady(false)
+      return
+    }
     if (config) {
+      const matchedCountry = findCountry(config.countryCode || config.country)
+      const nextCountryCode = matchedCountry?.isoCode || config.countryCode || ''
+      const nextCountry = matchedCountry?.name || config.country || ''
+      const matchedCity = nextCountryCode ? findCity(nextCountryCode, config.city) : undefined
       const capacity = config.featuredCapacity || config.featuredPositionPricing.length || 0
-      setCountry(config.country || '')
-      setCountryCode(config.countryCode || '')
-      setCity(config.city || '')
-      setLatitude(String(config.latitude ?? ''))
-      setLongitude(String(config.longitude ?? ''))
+
+      setCountry(nextCountry)
+      setCountryCode(nextCountryCode)
+      if (matchedCity) {
+        setCity(matchedCity.name)
+        setCityKey(matchedCity.key)
+      } else {
+        const custom = makeCustomCity(config.city, config.latitude ?? 0, config.longitude ?? 0)
+        setCity(config.city || '')
+        setCityKey(custom.key)
+      }
+      setLatitude(config.latitude != null ? String(config.latitude) : '')
+      setLongitude(config.longitude != null ? String(config.longitude) : '')
       setFeaturedCapacity(String(capacity))
       setFeaturedEnabled(Boolean(config.featuredEnabled))
-      setBannerCapacity(String(config.bannerCapacity ?? 0))
-      setBannerEnabled(Boolean(config.bannerEnabled))
       setStatus(config.status || 'active')
       setPricing(syncPricing(capacity, config.featuredPositionPricing))
       setImageFile(null)
@@ -298,18 +327,43 @@ function CityAdConfigFormModal({
       setCountry(emptyForm.country)
       setCountryCode(emptyForm.countryCode)
       setCity(emptyForm.city)
+      setCityKey(emptyForm.cityKey)
       setLatitude(emptyForm.latitude)
       setLongitude(emptyForm.longitude)
       setFeaturedCapacity(emptyForm.featuredCapacity)
       setFeaturedEnabled(emptyForm.featuredEnabled)
-      setBannerCapacity(emptyForm.bannerCapacity)
-      setBannerEnabled(emptyForm.bannerEnabled)
       setStatus(emptyForm.status)
       setPricing(syncPricing(5))
       setImageFile(null)
       setPreviewUrl('')
     }
+    setLocationReady(true)
   }, [open, config])
+
+  const handleCountryChange = (isoCode: string) => {
+    const selected = findCountry(isoCode)
+    setCountryCode(isoCode)
+    setCountry(selected?.name || '')
+    setCity('')
+    setCityKey('')
+    setLatitude('')
+    setLongitude('')
+  }
+
+  const handleCityChange = (key: string) => {
+    const selected = cities.find((item) => item.key === key)
+    if (!selected) {
+      setCity('')
+      setCityKey('')
+      setLatitude('')
+      setLongitude('')
+      return
+    }
+    setCityKey(selected.key)
+    setCity(selected.name)
+    setLatitude(selected.latitude)
+    setLongitude(selected.longitude)
+  }
 
   const handleCapacityChange = (value: string) => {
     setFeaturedCapacity(value)
@@ -335,6 +389,19 @@ function CityAdConfigFormModal({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (!countryCode || !country) {
+      toast.error('Select a country.')
+      return
+    }
+    if (!city) {
+      toast.error('Select a city.')
+      return
+    }
+    if (latitude === '' || longitude === '' || Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) {
+      toast.error('Select a city to set latitude and longitude.')
+      return
+    }
+
     const payload: CityAdConfigInput = {
       country: country.trim(),
       countryCode: countryCode.trim().toUpperCase(),
@@ -344,8 +411,6 @@ function CityAdConfigFormModal({
       featuredCapacity: Number(featuredCapacity) || 0,
       featuredEnabled,
       featuredPositionPricing: syncPricing(Number(featuredCapacity) || 0, pricing),
-      bannerCapacity: Number(bannerCapacity) || 0,
-      bannerEnabled,
       status,
       defaultFeaturedImageFile: imageFile,
     }
@@ -373,7 +438,7 @@ function CityAdConfigFormModal({
       open={open}
       onClose={onClose}
       title={config ? `Edit · ${config.city}` : 'New city ads configuration'}
-      description="Set city location, ad channel capacity, slot prices, and the default featured image."
+      description="Choose a country and city. Coordinates are set from the city and shown on the map."
       size="xl"
       footer={
         <>
@@ -388,88 +453,75 @@ function CityAdConfigFormModal({
     >
       <form id="city-ad-config-form" onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
+          <Select
             label="Country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            placeholder="Bangladesh"
-            required
-          />
-          <Input
-            label="Country code"
+            options={COUNTRY_OPTIONS}
+            placeholder="Select country"
             value={countryCode}
-            onChange={(e) => setCountryCode(e.target.value)}
-            placeholder="BD"
+            onChange={(e) => handleCountryChange(e.target.value)}
+            required
+          />
+          <Select
+            label="City"
+            options={cityOptions}
+            placeholder={countryCode ? 'Select city' : 'Select a country first'}
+            value={cityKey}
+            onChange={(e) => handleCityChange(e.target.value)}
+            disabled={!countryCode}
             required
           />
         </div>
 
-        <Input
-          label="City"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="e.g. Dhaka"
-          required
-        />
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Latitude"
-            type="number"
-            step="any"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            required
-          />
-          <Input
-            label="Longitude"
-            type="number"
-            step="any"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            required
-          />
-        </div>
+        {locationReady && <GoogleLocationMap active={open} latitude={latitude} longitude={longitude} />}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-ink-100 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-ink-800">Featured channel</p>
-              <label className="flex items-center gap-2 text-sm text-ink-700">
-                <Switch
-                  checked={featuredEnabled}
-                  onChange={setFeaturedEnabled}
-                  label="Featured enabled"
-                />
-                Enabled
-              </label>
+            <p className="mb-3 text-sm font-medium text-ink-800">Featured channel</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-ink-700">Enabled</p>
+                <label className="flex h-10 items-center gap-2 text-sm text-ink-700">
+                  <Switch
+                    checked={featuredEnabled}
+                    onChange={setFeaturedEnabled}
+                    label="Featured enabled"
+                  />
+                  {featuredEnabled ? 'On' : 'Off'}
+                </label>
+              </div>
+              <Input
+                label="Featured capacity"
+                type="number"
+                min={0}
+                max={50}
+                value={featuredCapacity}
+                onChange={(e) => handleCapacityChange(e.target.value)}
+                required
+              />
             </div>
-            <Input
-              label="Featured capacity"
-              type="number"
-              min={0}
-              max={50}
-              value={featuredCapacity}
-              onChange={(e) => handleCapacityChange(e.target.value)}
-              required
-            />
           </div>
 
           <div className="rounded-lg border border-ink-100 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-ink-800">Banner channel</p>
-              <label className="flex items-center gap-2 text-sm text-ink-700">
-                <Switch checked={bannerEnabled} onChange={setBannerEnabled} label="Banner enabled" />
-                Enabled
-              </label>
+            <label className="mb-1.5 block text-sm font-medium text-ink-700">Default featured image</label>
+            <div className="flex h-[calc(100%-1.5rem)] min-h-[8.5rem] flex-col items-center justify-center rounded-lg border-2 border-dashed border-ink-200 bg-ink-50/50 p-3 text-center transition-colors hover:border-brand-500">
+              {previewUrl ? (
+                <div className="relative mb-2 h-24 w-full overflow-hidden rounded-md border border-ink-200">
+                  <img src={previewUrl} alt="Featured preview" className="h-full w-full object-cover" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center py-1 text-ink-500">
+                  <Upload className="mb-1 h-6 w-6 text-ink-400" />
+                  <span className="text-xs font-medium">Upload image</span>
+                  <span className="text-[11px] text-ink-400">PNG, JPG, WEBP</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full cursor-pointer text-xs text-ink-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+              />
             </div>
-            <Input
-              label="Banner capacity"
-              type="number"
-              min={0}
-              value={bannerCapacity}
-              onChange={(e) => setBannerCapacity(e.target.value)}
-            />
           </div>
         </div>
 
@@ -483,31 +535,6 @@ function CityAdConfigFormModal({
         </label>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-ink-700">
-            Default featured image
-          </label>
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-ink-200 bg-ink-50/50 p-4 text-center transition-colors hover:border-brand-500">
-            {previewUrl ? (
-              <div className="relative mb-3 h-36 w-full overflow-hidden rounded-md border border-ink-200">
-                <img src={previewUrl} alt="Featured preview" className="h-full w-full object-cover" />
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-2 text-ink-500">
-                <Upload className="mb-2 h-8 w-8 text-ink-400" />
-                <span className="text-xs font-medium">Click to upload default featured image</span>
-                <span className="mt-0.5 text-[11px] text-ink-400">PNG, JPG, WEBP</span>
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full cursor-pointer text-xs text-ink-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
-            />
-          </div>
-        </div>
-
-        <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-medium text-ink-800">Featured position pricing</p>
             <span className="text-xs text-ink-500">{pricing.length} positions</span>
@@ -517,20 +544,18 @@ function CityAdConfigFormModal({
               Set featured capacity to add position prices.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {pricing.map((item, index) => (
-                <div key={item.position} className="grid grid-cols-[88px_1fr] items-end gap-3">
-                  <Input label={index === 0 ? 'Position' : undefined} value={String(item.position)} disabled />
-                  <Input
-                    label={index === 0 ? 'Price' : undefined}
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={String(item.price)}
-                    onChange={(e) => handlePriceChange(index, e.target.value)}
-                    required
-                  />
-                </div>
+                <Input
+                  key={item.position}
+                  label={`Position ${item.position}`}
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={String(item.price)}
+                  onChange={(e) => handlePriceChange(index, e.target.value)}
+                  required
+                />
               ))}
             </div>
           )}

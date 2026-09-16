@@ -12,8 +12,6 @@ export interface CityAdConfigInput {
   featuredCapacity: number
   featuredEnabled: boolean
   featuredPositionPricing: FeaturedPositionPrice[]
-  bannerCapacity?: number
-  bannerEnabled?: boolean
   status?: string
   defaultFeaturedImageFile?: File | null
 }
@@ -65,12 +63,6 @@ function toPayloadJson(body: CityAdConfigInput) {
     })),
   }
 
-  if (typeof body.bannerCapacity === 'number' && !Number.isNaN(body.bannerCapacity)) {
-    payload.bannerCapacity = Number(body.bannerCapacity)
-  }
-  if (typeof body.bannerEnabled === 'boolean') {
-    payload.bannerEnabled = body.bannerEnabled
-  }
   if (body.status) {
     payload.status = body.status
   }
