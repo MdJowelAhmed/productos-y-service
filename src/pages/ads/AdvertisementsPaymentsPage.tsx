@@ -38,6 +38,11 @@ function storeLabel(payment: AdvertisementPayment) {
   return payment.store?.displayName || 'Unnamed store'
 }
 
+function cityLabel(city?: AdvertisementPayment['city']) {
+  if (!city?.name) return ''
+  return city.country ? `${city.name}, ${city.country}` : city.name
+}
+
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
@@ -278,7 +283,7 @@ function AdvertisementPaymentDetailsModal({
                 value={data.paymentDate ? formatDate(data.paymentDate) : '—'}
               />
               <DetailItem label="Ad submitted" value={data.isAdSubmitted ? 'Yes' : 'No'} />
-              <DetailItem label="City" value={data.city} />
+              <DetailItem label="City" value={cityLabel(data.city)} />
               <DetailItem label="Position" value={data.position != null ? String(data.position) : '—'} />
             </div>
           </div>

@@ -1,13 +1,36 @@
 import { api } from '@/services/api'
 import type { ListParams, Paginated } from '@/types/api.types'
 import type { ID } from '@/types/common.types'
-import type { AdvertisementPayment } from '@/types/models'
+import type { AdvertisementPayment, AdvertisementPaymentCity } from '@/types/models'
 
 export interface AdvertisementPaymentsResult extends Paginated<AdvertisementPayment> {
   totalPayments: number
   totalRevenue: number
   activeAdsCount: number
   trialCount: number
+}
+
+function mapCity(raw: any): AdvertisementPaymentCity | null {
+  if (!raw) return null
+  if (typeof raw === 'string') return { name: raw }
+  return {
+    id: String(raw.id || raw._id || ''),
+    name: raw.name || raw.city || '',
+    country: raw.country || '',
+    countryCode: raw.countryCode || '',
+    latitude: raw.latitude != null ? Number(raw.latitude) : undefined,
+    longitude: raw.longitude != null ? Number(raw.longitude) : undefined,
+  }
+}
+
+function mapPosition(raw: any): number | null {
+  if (raw == null || raw === '') return null
+  if (typeof raw === 'object') {
+    const value = raw.position ?? raw.value
+    return value == null || Number.isNaN(Number(value)) ? null : Number(value)
+  }
+  const value = Number(raw)
+  return Number.isNaN(value) ? null : value
 }
 
 export function mapBackendAdvertisementPayment(raw: any): AdvertisementPayment {
@@ -57,8 +80,8 @@ export function mapBackendAdvertisementPayment(raw: any): AdvertisementPayment {
     subscriptionId: raw.subscriptionId ? String(raw.subscriptionId) : undefined,
     seller,
     store,
-    city: raw.city ?? null,
-    position: raw.position ?? null,
+    city: mapCity(raw.city),
+    position: mapPosition(raw.position),
     amountPaid: Number(raw.amountPaid) || 0,
     trxId: raw.trxId ?? null,
     stripeSessionId: raw.stripeSessionId ?? null,

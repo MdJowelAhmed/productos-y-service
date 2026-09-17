@@ -25,6 +25,27 @@ describe('mapBackendAdvertisementPayment', () => {
     expect(mapped.isTrial).toBe(false)
   })
 
+  it('maps a nested city object without crashing the details view', () => {
+    const mapped = mapBackendAdvertisementPayment({
+      id: 'pay-1',
+      amountPaid: 10,
+      paymentStatus: 'PAID',
+      city: {
+        id: 'city-1',
+        name: 'Dhaka',
+        country: 'Bangladesh',
+        countryCode: 'BD',
+        latitude: 23.81,
+        longitude: 90.41,
+      },
+      position: { position: 2 },
+    })
+
+    expect(mapped.city?.name).toBe('Dhaka')
+    expect(mapped.city?.country).toBe('Bangladesh')
+    expect(mapped.position).toBe(2)
+  })
+
   it('maps a trial payment with empty store name', () => {
     const mapped = mapBackendAdvertisementPayment({
       id: 'trial-1',
