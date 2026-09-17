@@ -431,6 +431,63 @@ export interface Transaction {
   createdAt: ISODate
 }
 
+/* --------------------- Advertisement payments --------------------- */
+
+export interface AdvertisementPaymentSeller {
+  id: ID
+  name: string
+  email?: string
+  phone?: string
+  profileImage?: string | null
+}
+
+export interface AdvertisementPaymentStore {
+  id: ID
+  displayName?: string | null
+  logo?: string | null
+  storeType?: string
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+}
+
+export interface AdvertisementPaymentPackage {
+  id: ID
+  name: string
+  duration?: string
+  price?: number
+}
+
+export interface AdvertisementPaymentSubscription {
+  status?: string
+  expiresAt?: ISODate
+  remainingDays?: number
+  isExpired?: boolean
+}
+
+export interface AdvertisementPayment {
+  id: ID
+  subscriptionId?: ID
+  seller?: AdvertisementPaymentSeller | null
+  store?: AdvertisementPaymentStore | null
+  city?: string | null
+  position?: number | null
+  amountPaid: number
+  trxId?: string | null
+  stripeSessionId?: string | null
+  invoiceNumber?: string | null
+  invoiceUrl?: string | null
+  invoiceDownloadUrl?: string | null
+  paymentMethod?: string
+  paymentStatus?: string
+  paymentDate?: ISODate
+  isTrial?: boolean
+  package?: AdvertisementPaymentPackage | null
+  subscription?: AdvertisementPaymentSubscription | null
+  advertisement?: unknown
+  isAdSubmitted?: boolean
+}
+
 /* --------------------------- Engagement --------------------------- */
 
 export type AnnouncementAudience =

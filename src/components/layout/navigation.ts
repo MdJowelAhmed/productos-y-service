@@ -14,6 +14,7 @@ import {
   HelpCircle,
   UserCog,
   MapPinned,
+  Banknote,
   type LucideIcon,
 } from 'lucide-react'
 import { ROUTES } from '@/constants/routes'
@@ -60,6 +61,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Banners', to: ROUTES.banners, icon: Image },
       { label: 'Ads Configuration', to: ROUTES.adsConfiguration, icon: MapPinned },
+      { label: 'Advertisements Payment', to: ROUTES.advertisementsPayments, icon: Banknote },
       { label: 'Pages', to: ROUTES.pages, icon: FileText },
       { label: 'FAQs', to: ROUTES.faqs, icon: HelpCircle },
     ],

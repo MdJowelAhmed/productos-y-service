@@ -81,6 +81,19 @@ export function TransactionStatusBadge({ status }: { status: TransactionStatus }
   return <Badge tone={txTone[status]}>{status}</Badge>
 }
 
+const adPaymentTone: Record<string, BadgeTone> = {
+  PAID: 'green',
+  TRIAL: 'blue',
+  PENDING: 'amber',
+  FAILED: 'red',
+  REFUNDED: 'gray',
+}
+
+export function AdvertisementPaymentStatusBadge({ status }: { status?: string }) {
+  const key = (status || '').toUpperCase()
+  return <Badge tone={adPaymentTone[key] || 'gray'}>{status || 'unknown'}</Badge>
+}
+
 export function ContentStatusBadge({ status }: { status: ContentStatus }) {
   return <Badge tone={status === 'published' ? 'green' : 'gray'}>{status}</Badge>
 }
