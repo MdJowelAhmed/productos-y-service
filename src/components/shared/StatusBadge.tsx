@@ -77,8 +77,10 @@ const txTone: Record<TransactionStatus, BadgeTone> = {
   failed: 'red',
   refunded: 'gray',
 }
-export function TransactionStatusBadge({ status }: { status: TransactionStatus }) {
-  return <Badge tone={txTone[status]}>{status}</Badge>
+export function TransactionStatusBadge({ status }: { status: TransactionStatus | string }) {
+  const s = String(status || '').toLowerCase() as TransactionStatus
+  const label = s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
+  return <Badge tone={txTone[s] || 'gray'}>{label}</Badge>
 }
 
 const adPaymentTone: Record<string, BadgeTone> = {

@@ -426,9 +426,13 @@ export interface Transaction {
   amount: number
   currency: string
   status: TransactionStatus
-  method: 'card' | 'mobile_banking' | 'wallet'
+  method: string
   invoiceNo: string
   createdAt: ISODate
+  dateLabel?: string
+  invoiceUrl?: string
+  invoiceDownloadUrl?: string
+  canRefund?: boolean
 }
 
 /* --------------------- Advertisement payments --------------------- */
@@ -465,12 +469,21 @@ export interface AdvertisementPaymentSubscription {
   isExpired?: boolean
 }
 
+export interface AdvertisementPaymentCity {
+  id?: ID
+  name: string
+  country?: string
+  countryCode?: string
+  latitude?: number
+  longitude?: number
+}
+
 export interface AdvertisementPayment {
   id: ID
   subscriptionId?: ID
   seller?: AdvertisementPaymentSeller | null
   store?: AdvertisementPaymentStore | null
-  city?: string | null
+  city?: AdvertisementPaymentCity | null
   position?: number | null
   amountPaid: number
   trxId?: string | null
